@@ -1,0 +1,681 @@
+{% extends 'base.html' %}
+
+{% block title %}Cerca Voli — Amadeus{% endblock %}
+{% block page_title %}Cerca Voli{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+<li class="breadcrumb-item active">Cerca Voli</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.airport-dropdown {
+  position: absolute;
+  z-index: 9999;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-top: none;
+  border-radius: 0 0 .375rem .375rem;
+  max-height: 240px;
+  overflow-y: auto;
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  display: none;
+}
+.airport-dropdown .apt-item {
+  padding: .45rem .75rem;
+  cursor: pointer;
+  font-size: .875rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+.airport-dropdown .apt-item:last-child { border-bottom: none; }
+.airport-dropdown .apt-item:hover, .airport-dropdown .apt-item.active {
+  background: #e9f3ff;
+}
+.airport-dropdown .apt-iata {
+  font-weight: 700;
+  color: #0d6efd;
+  margin-left: .35rem;
+}
+.airport-wrapper { position: relative; }
+.iata-badge {
+  position: absolute;
+  right: .5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: .7rem;
+  font-weight: 700;
+  color: #fff;
+  background: #0d6efd;
+  padding: .1rem .4rem;
+  border-radius: .25rem;
+  pointer-events: none;
+  display: none;
+}
+.flight-card { transition: box-shadow .2s; }
+.flight-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.15) !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+
+    <!-- Search card -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h3 class="card-title mb-0">
+          <i class="bi bi-airplane me-2 text-primary"></i>Ricerca Voli
+        </h3>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('amadeus.voli') }}" id="searchForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="row g-3 align-items-end">
+
+            <!-- Partenza -->
+            <div class="col-12 col-md-3">
+              <label class="form-label fw-semibold">
+                Partenza <span class="text-danger">*</span>
+              </label>
+              <div class="input-group airport-wrapper">
+                <span class="input-group-text"><i class="bi bi-airplane-engines"></i></span>
+                <div style="position:relative;flex:1;">
+                  <input type="text" class="form-control airport-text" id="origin_text"
+                         placeholder="Città o aeroporto..."
+                         autocomplete="off"
+                         data-target="origin">
+                  <span class="iata-badge" id="origin_badge"></span>
+                  <div class="airport-dropdown" id="origin_dropdown"></div>
+                </div>
+                <input type="hidden" name="origin" id="origin"
+                       value="{{ request.form.get('origin', '') }}">
+              </div>
+            </div>
+
+            <!-- Arrivo -->
+            <div class="col-12 col-md-3">
+              <label class="form-label fw-semibold">
+                Arrivo <span class="text-danger">*</span>
+              </label>
+              <div class="input-group airport-wrapper">
+                <span class="input-group-text"><i class="bi bi-airplane-fill"></i></span>
+                <div style="position:relative;flex:1;">
+                  <input type="text" class="form-control airport-text" id="destination_text"
+                         placeholder="Città o aeroporto..."
+                         autocomplete="off"
+                         data-target="destination">
+                  <span class="iata-badge" id="destination_badge"></span>
+                  <div class="airport-dropdown" id="destination_dropdown"></div>
+                </div>
+                <input type="hidden" name="destination" id="destination"
+                       value="{{ request.form.get('destination', '') }}">
+              </div>
+            </div>
+
+            <!-- Data partenza -->
+            <div class="col-6 col-md-2">
+              <label for="departure_date" class="form-label fw-semibold">
+                Data partenza <span class="text-danger">*</span>
+              </label>
+              <input type="date" class="form-control" id="departure_date"
+                     name="departure_date" required min="{{ today }}"
+                     value="{{ request.form.get('departure_date', '') }}">
+            </div>
+
+            <!-- Data ritorno -->
+            <div class="col-6 col-md-2">
+              <label for="return_date" class="form-label fw-semibold">
+                Ritorno <span class="text-muted fw-normal">(opt.)</span>
+              </label>
+              <input type="date" class="form-control" id="return_date"
+                     name="return_date" min="{{ today }}"
+                     value="{{ request.form.get('return_date', '') }}">
+            </div>
+
+            <!-- Passeggeri -->
+            <div class="col-6 col-md-1">
+              <label for="adults" class="form-label fw-semibold">Adulti</label>
+              <input type="number" class="form-control" id="adults" name="adults"
+                     min="1" max="9" value="{{ request.form.get('adults', 1) }}">
+            </div>
+
+            <!-- Submit -->
+            <div class="col-6 col-md-1">
+              <label class="form-label d-none d-md-block">&nbsp;</label>
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-search"></i>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Error -->
+    {% if error %}
+    <div class="alert alert-danger d-flex align-items-center gap-2">
+      <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+      <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Results -->
+    {% if risultati is not none and risultati | length > 0 %}
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h5 class="mb-0">
+        <i class="bi bi-airplane me-2"></i>{{ risultati | length }} offerte trovate
+      </h5>
+      {% if viaggi %}
+      <span class="text-muted small">
+        <i class="bi bi-link-45deg me-1"></i>Clicca "Collega" per associare un volo a un viaggio
+      </span>
+      {% endif %}
+    </div>
+
+    <div class="row g-3">
+      {% for r in risultati %}
+      {% set compagnia = r.validatingAirlineCodes[0] if r.validatingAirlineCodes else '' %}
+      {% set prezzo_tot = r.price.total %}
+      {% set currency = r.price.currency %}
+      {% if r.itineraries and r.itineraries | length > 0 %}
+        {% set leg0 = r.itineraries[0] %}
+        {% set da_iata = leg0.segments[0].departure.iataCode %}
+        {% set a_iata  = leg0.segments[-1].arrival.iataCode %}
+        {% set dt_raw  = leg0.segments[0].departure.at %}
+        {% set dur_raw = leg0.duration %}
+        {% set scali   = (leg0.segments | length) - 1 %}
+      {% else %}
+        {% set da_iata = '' %}{% set a_iata = '' %}{% set dt_raw = '' %}{% set dur_raw = '' %}{% set scali = 0 %}
+      {% endif %}
+
+      <div class="col-12 col-lg-6">
+        <div class="card h-100 shadow-sm flight-card"
+             data-compagnia="{{ compagnia }}"
+             data-da="{{ da_iata }}"
+             data-a="{{ a_iata }}"
+             data-data="{{ dt_raw }}"
+             data-durata="{{ dur_raw }}"
+             data-scali="{{ scali }}"
+             data-prezzo="{{ prezzo_tot }} {{ currency }}">
+
+          <div class="card-body">
+            <!-- Header: compagnia + prezzo -->
+            <div class="d-flex align-items-start justify-content-between mb-3">
+              <div>
+                {% if compagnia %}
+                <span class="badge text-bg-secondary me-1">
+                  <i class="bi bi-airplane me-1"></i>{{ compagnia }}
+                </span>
+                {% endif %}
+                <span class="badge text-bg-light border text-dark">
+                  {% if scali == 0 %}
+                    <i class="bi bi-check-circle text-success me-1"></i>Diretto
+                  {% else %}
+                    {{ scali }} scal{{ 'a' if scali == 1 else 'e' }}
+                  {% endif %}
+                </span>
+              </div>
+              <div class="text-end">
+                <span class="fs-4 fw-bold text-success">{{ prezzo_tot }}</span>
+                <span class="text-muted small ms-1">{{ currency }}</span>
+              </div>
+            </div>
+
+            <!-- Andata -->
+            {% if r.itineraries and r.itineraries | length > 0 %}
+            {% set leg = r.itineraries[0] %}
+            <div class="mb-2">
+              <span class="badge text-bg-primary mb-1">
+                <i class="bi bi-airplane-fill me-1"></i>Andata
+              </span>
+              <div class="d-flex align-items-center gap-2 mt-1">
+                <div class="text-center">
+                  <div class="fw-bold fs-5">{{ leg.segments[0].departure.iataCode }}</div>
+                  <div class="text-muted" style="font-size:.7rem;">
+                    {{ leg.segments[0].departure.at | replace('T',' ') | truncate(16, True, '') }}
+                  </div>
+                </div>
+                <div class="flex-fill text-center text-muted small">
+                  <i class="bi bi-arrow-right"></i>
+                  <div>{{ leg.duration | replace('PT','') | replace('H','h ') | replace('M','min') }}</div>
+                </div>
+                <div class="text-center">
+                  <div class="fw-bold fs-5">{{ leg.segments[-1].arrival.iataCode }}</div>
+                  <div class="text-muted" style="font-size:.7rem;">
+                    {{ leg.segments[-1].arrival.at | replace('T',' ') | truncate(16, True, '') }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Ritorno -->
+            {% if r.itineraries and r.itineraries | length > 1 %}
+            {% set retleg = r.itineraries[1] %}
+            <hr class="my-2">
+            <div>
+              <span class="badge text-bg-secondary mb-1">
+                <i class="bi bi-airplane me-1" style="transform:scaleX(-1);display:inline-block"></i>Ritorno
+              </span>
+              <div class="d-flex align-items-center gap-2 mt-1">
+                <div class="text-center">
+                  <div class="fw-bold fs-5">{{ retleg.segments[0].departure.iataCode }}</div>
+                  <div class="text-muted" style="font-size:.7rem;">
+                    {{ retleg.segments[0].departure.at | replace('T',' ') | truncate(16, True, '') }}
+                  </div>
+                </div>
+                <div class="flex-fill text-center text-muted small">
+                  <i class="bi bi-arrow-right"></i>
+                  <div>{{ retleg.duration | replace('PT','') | replace('H','h ') | replace('M','min') }}</div>
+                </div>
+                <div class="text-center">
+                  <div class="fw-bold fs-5">{{ retleg.segments[-1].arrival.iataCode }}</div>
+                  <div class="text-muted" style="font-size:.7rem;">
+                    {{ retleg.segments[-1].arrival.at | replace('T',' ') | truncate(16, True, '') }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+          </div>
+
+          <!-- Footer: Collega a Viaggio -->
+          {% if viaggi %}
+          <div class="card-footer bg-transparent pt-2">
+            <button type="button" class="btn btn-sm btn-outline-primary collega-btn"
+                    data-bs-toggle="modal" data-bs-target="#collegaModal"
+                    data-compagnia="{{ compagnia }}"
+                    data-da="{{ da_iata }}"
+                    data-a="{{ a_iata }}"
+                    data-data="{{ dt_raw }}"
+                    data-durata="{{ dur_raw }}"
+                    data-scali="{{ scali }}"
+                    data-prezzo="{{ prezzo_tot }} {{ currency }}">
+              <i class="bi bi-link-45deg me-1"></i>Collega a Viaggio
+            </button>
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% elif risultati is not none and risultati | length == 0 %}
+    <div class="alert alert-info d-flex align-items-center gap-2">
+      <i class="bi bi-info-circle-fill flex-shrink-0"></i>
+      <span>Nessun volo trovato per i criteri selezionati.</span>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ====== Modal: Collega a Viaggio ====== -->
+{% if viaggi %}
+<div class="modal fade" id="collegaModal" tabindex="-1" aria-labelledby="collegaModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="collegaModalLabel">
+          <i class="bi bi-link-45deg me-2"></i>Collega Volo a Viaggio
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('amadeus.collega_volo') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="volo_json" id="modal_volo_json">
+        <div class="modal-body">
+
+          <!-- Riepilogo volo selezionato -->
+          <div class="alert alert-light border mb-3" id="modal_riepilogo">
+            <div class="d-flex align-items-center gap-3">
+              <div>
+                <i class="bi bi-airplane-fill text-primary fs-4"></i>
+              </div>
+              <div>
+                <div class="fw-bold fs-5">
+                  <span id="m_da">—</span>
+                  <i class="bi bi-arrow-right mx-2 text-muted"></i>
+                  <span id="m_a">—</span>
+                </div>
+                <div class="text-muted small">
+                  <span id="m_compagnia"></span>
+                  <span class="mx-1">·</span>
+                  <span id="m_data"></span>
+                  <span class="mx-1">·</span>
+                  <span id="m_durata"></span>
+                </div>
+              </div>
+              <div class="ms-auto">
+                <span class="badge text-bg-success fs-6" id="m_prezzo"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selezione viaggio -->
+          <label for="viaggio_id" class="form-label fw-semibold">
+            Seleziona il Viaggio <span class="text-danger">*</span>
+          </label>
+          <select class="form-select" name="viaggio_id" id="viaggio_id" required>
+            <option value="">— Seleziona un viaggio —</option>
+            {% for v in viaggi %}
+            <option value="{{ v.id }}">
+              {{ v.nome }}
+              {% if v.cliente %} — {{ v.cliente.nome_completo() }}{% endif %}
+              {% if v.data_partenza %} ({{ v.data_partenza.strftime('%d/%m/%Y') }}){% endif %}
+              · {{ v.stato_label() }}
+            </option>
+            {% endfor %}
+          </select>
+          <div class="form-text mt-1">
+            <i class="bi bi-info-circle me-1"></i>
+            Sono mostrati i viaggi in stato Bozza o Confermato.
+            Il flag "include volo" verrà attivato automaticamente.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-link-45deg me-1"></i>Collega
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* =========================================================
+   Airport autocomplete data
+   ========================================================= */
+const AIRPORTS = [
+  {c:'Roma',n:'Fiumicino (Leonardo da Vinci)',i:'FCO'},
+  {c:'Roma',n:'Ciampino',i:'CIA'},
+  {c:'Milano',n:'Malpensa',i:'MXP'},
+  {c:'Milano',n:'Linate',i:'LIN'},
+  {c:'Bergamo',n:'Orio al Serio',i:'BGY'},
+  {c:'Napoli',n:'Capodichino',i:'NAP'},
+  {c:'Venezia',n:'Marco Polo',i:'VCE'},
+  {c:'Catania',n:'Fontanarossa',i:'CTA'},
+  {c:'Palermo',n:'Falcone-Borsellino',i:'PMO'},
+  {c:'Torino',n:'Caselle',i:'TRN'},
+  {c:'Bologna',n:'Guglielmo Marconi',i:'BLQ'},
+  {c:'Firenze',n:'Peretola',i:'FLR'},
+  {c:'Bari',n:'Karol Wojtyla',i:'BRI'},
+  {c:'Cagliari',n:'Elmas',i:'CAG'},
+  {c:'Olbia',n:'Costa Smeralda',i:'OLB'},
+  {c:'Genova',n:'Cristoforo Colombo',i:'GOA'},
+  {c:'Pisa',n:'Galileo Galilei',i:'PSA'},
+  {c:'Alghero',n:'Fertilia',i:'AHO'},
+  {c:'Lamezia Terme',n:'Internazionale',i:'SUF'},
+  {c:'Brindisi',n:'Papola Casale',i:'BDS'},
+  {c:'Trieste',n:'Ronchi dei Legionari',i:'TRS'},
+  {c:'Verona',n:'Villafranca',i:'VRN'},
+  {c:'Reggio Calabria',n:'Tito Minniti',i:'REG'},
+  {c:'Ancona',n:'Falconara Marittima',i:'AOI'},
+  {c:'Perugia',n:'San Francesco d\'Assisi',i:'PEG'},
+  {c:'Rimini',n:'Federico Fellini',i:'RMI'},
+  {c:'Londra',n:'Heathrow',i:'LHR'},
+  {c:'Londra',n:'Gatwick',i:'LGW'},
+  {c:'Londra',n:'Stansted',i:'STN'},
+  {c:'Parigi',n:'Charles de Gaulle',i:'CDG'},
+  {c:'Parigi',n:'Orly',i:'ORY'},
+  {c:'Madrid',n:'Adolfo Suárez Barajas',i:'MAD'},
+  {c:'Barcellona',n:'El Prat',i:'BCN'},
+  {c:'Amsterdam',n:'Schiphol',i:'AMS'},
+  {c:'Francoforte',n:'Frankfurt am Main',i:'FRA'},
+  {c:'Monaco',n:'Franz Josef Strauss',i:'MUC'},
+  {c:'Vienna',n:'Schwechat',i:'VIE'},
+  {c:'Zurigo',n:'Kloten',i:'ZRH'},
+  {c:'Ginevra',n:'Cointrin',i:'GVA'},
+  {c:'Bruxelles',n:'Zaventem',i:'BRU'},
+  {c:'Lisbona',n:'Humberto Delgado',i:'LIS'},
+  {c:'Dublino',n:'Dublin Airport',i:'DUB'},
+  {c:'Istanbul',n:'Istanbul Airport',i:'IST'},
+  {c:'Istanbul',n:'Sabiha Gökçen',i:'SAW'},
+  {c:'Dubai',n:'Dubai International',i:'DXB'},
+  {c:'Abu Dhabi',n:'Zayed International',i:'AUH'},
+  {c:'Berlino',n:'Brandenburg',i:'BER'},
+  {c:'Amburgo',n:'Hamburg Airport',i:'HAM'},
+  {c:'Dusseldorf',n:'Düsseldorf Airport',i:'DUS'},
+  {c:'Stoccarda',n:'Stuttgart Airport',i:'STR'},
+  {c:'Stoccolma',n:'Arlanda',i:'ARN'},
+  {c:'Copenhagen',n:'Kastrup',i:'CPH'},
+  {c:'Oslo',n:'Gardermoen',i:'OSL'},
+  {c:'Helsinki',n:'Vantaa',i:'HEL'},
+  {c:'Praga',n:'Václav Havel',i:'PRG'},
+  {c:'Budapest',n:'Ferenc Liszt',i:'BUD'},
+  {c:'Varsavia',n:'Frederic Chopin',i:'WAW'},
+  {c:'Bucarest',n:'Henri Coandă',i:'OTP'},
+  {c:'Sofia',n:'Sofia Airport',i:'SOF'},
+  {c:'Belgrado',n:'Nikola Tesla',i:'BEG'},
+  {c:'Zagabria',n:'Franjo Tuđman',i:'ZAG'},
+  {c:'Spalato',n:'Split Airport',i:'SPU'},
+  {c:'Dubrovnik',n:'Čilipi',i:'DBV'},
+  {c:'Atene',n:'Eleftherios Venizelos',i:'ATH'},
+  {c:'Santorini',n:'Thira',i:'JTR'},
+  {c:'Mykonos',n:'Mykonos',i:'JMK'},
+  {c:'Creta (Heraklion)',n:'Nikos Kazantzakis',i:'HER'},
+  {c:'La Valletta',n:'Malta International',i:'MLA'},
+  {c:'Tenerife',n:'Sur Reina Sofía',i:'TFS'},
+  {c:'Gran Canaria',n:'Las Palmas',i:'LPA'},
+  {c:'Ibiza',n:'Ibiza Airport',i:'IBZ'},
+  {c:'Maiorca',n:'Son Sant Joan',i:'PMI'},
+  {c:'Malaga',n:'Costa del Sol',i:'AGP'},
+  {c:'Siviglia',n:'San Pablo',i:'SVQ'},
+  {c:'Nizza',n:'Côte d\'Azur',i:'NCE'},
+  {c:'Lione',n:'Saint-Exupéry',i:'LYS'},
+  {c:'Marsiglia',n:'Provence',i:'MRS'},
+  {c:'Tel Aviv',n:'Ben Gurion',i:'TLV'},
+  {c:'Cairo',n:'Cairo International',i:'CAI'},
+  {c:'Marrakech',n:'Menara',i:'RAK'},
+  {c:'Casablanca',n:'Mohammed V',i:'CMN'},
+  {c:'Tunisi',n:'Carthage',i:'TUN'},
+  {c:'Sharm el-Sheikh',n:'Sharm el-Sheikh',i:'SSH'},
+  {c:'Hurghada',n:'Hurghada',i:'HRG'},
+  {c:'Nairobi',n:'Jomo Kenyatta',i:'NBO'},
+  {c:'Johannesburg',n:'O. R. Tambo',i:'JNB'},
+  {c:'New York',n:'JFK Kennedy',i:'JFK'},
+  {c:'New York',n:'Newark Liberty',i:'EWR'},
+  {c:'Los Angeles',n:'LAX International',i:'LAX'},
+  {c:'Miami',n:'Miami International',i:'MIA'},
+  {c:'Chicago',n:'O\'Hare',i:'ORD'},
+  {c:'Toronto',n:'Pearson',i:'YYZ'},
+  {c:'Cancún',n:'Cancún International',i:'CUN'},
+  {c:'Città del Messico',n:'Benito Juárez',i:'MEX'},
+  {c:'Buenos Aires',n:'Ezeiza',i:'EZE'},
+  {c:'San Paolo',n:'Guarulhos',i:'GRU'},
+  {c:'Tokyo',n:'Narita',i:'NRT'},
+  {c:'Tokyo',n:'Haneda',i:'HND'},
+  {c:'Hong Kong',n:'Chek Lap Kok',i:'HKG'},
+  {c:'Singapore',n:'Changi',i:'SIN'},
+  {c:'Bangkok',n:'Suvarnabhumi',i:'BKK'},
+  {c:'Phuket',n:'Phuket International',i:'HKT'},
+  {c:'Bali (Denpasar)',n:'Ngurah Rai',i:'DPS'},
+  {c:'Mumbai',n:'Chhatrapati Shivaji',i:'BOM'},
+  {c:'Delhi',n:'Indira Gandhi',i:'DEL'},
+  {c:'Sydney',n:'Kingsford Smith',i:'SYD'},
+  {c:'Maldive (Malé)',n:'Velana International',i:'MLE'},
+  {c:'Mauritius',n:'Sir Seewoosagur Ramgoolam',i:'MRU'},
+  {c:'Seychelles',n:'Mahé International',i:'SEZ'},
+  {c:'Colombo',n:'Bandaranaike',i:'CMB'},
+];
+
+/* =========================================================
+   Autocomplete logic
+   ========================================================= */
+function setupAirportInput(textId, hiddenId, dropdownId, badgeId) {
+  const txt   = document.getElementById(textId);
+  const hid   = document.getElementById(hiddenId);
+  const drop  = document.getElementById(dropdownId);
+  const badge = document.getElementById(badgeId);
+
+  // Pre-fill text if we have an IATA from form submit
+  if (hid.value) {
+    const found = AIRPORTS.find(a => a.i === hid.value);
+    if (found) {
+      txt.value = found.c + ' — ' + found.n;
+      badge.textContent = found.i;
+      badge.style.display = 'inline-block';
+    } else {
+      txt.value = hid.value;
+      badge.textContent = hid.value;
+      badge.style.display = 'inline-block';
+    }
+  }
+
+  let activeIdx = -1;
+
+  function renderDropdown(query) {
+    const q = query.toLowerCase().replace(/\s+/g, '');
+    const matches = AIRPORTS.filter(a =>
+      a.c.toLowerCase().replace(/\s+/g,'').includes(q) ||
+      a.n.toLowerCase().replace(/\s+/g,'').includes(q) ||
+      a.i.toLowerCase().includes(q)
+    ).slice(0, 10);
+
+    drop.innerHTML = '';
+    activeIdx = -1;
+
+    if (matches.length === 0 || query.length < 2) {
+      drop.style.display = 'none';
+      return;
+    }
+
+    matches.forEach((apt, idx) => {
+      const item = document.createElement('div');
+      item.className = 'apt-item';
+      item.innerHTML = `${apt.c} <small class="text-muted">— ${apt.n}</small><span class="apt-iata">${apt.i}</span>`;
+      item.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        selectAirport(apt);
+      });
+      drop.appendChild(item);
+    });
+
+    drop.style.display = 'block';
+  }
+
+  function selectAirport(apt) {
+    txt.value  = apt.c + ' — ' + apt.n;
+    hid.value  = apt.i;
+    badge.textContent   = apt.i;
+    badge.style.display = 'inline-block';
+    drop.style.display  = 'none';
+    activeIdx = -1;
+  }
+
+  txt.addEventListener('input', function() {
+    hid.value = '';
+    badge.style.display = 'none';
+    // Allow direct IATA code entry (3 uppercase letters)
+    if (/^[A-Za-z]{3}$/.test(txt.value.trim())) {
+      hid.value = txt.value.trim().toUpperCase();
+    }
+    renderDropdown(this.value);
+  });
+
+  txt.addEventListener('keydown', function(e) {
+    const items = drop.querySelectorAll('.apt-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIdx = Math.min(activeIdx + 1, items.length - 1);
+      items.forEach((it, i) => it.classList.toggle('active', i === activeIdx));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIdx = Math.max(activeIdx - 1, -1);
+      items.forEach((it, i) => it.classList.toggle('active', i === activeIdx));
+    } else if (e.key === 'Enter') {
+      if (activeIdx >= 0 && items[activeIdx]) {
+        e.preventDefault();
+        items[activeIdx].dispatchEvent(new MouseEvent('mousedown'));
+      }
+    } else if (e.key === 'Escape') {
+      drop.style.display = 'none';
+    }
+  });
+
+  txt.addEventListener('blur', function() {
+    setTimeout(() => { drop.style.display = 'none'; }, 150);
+    // If no selection made but text is a 3-letter IATA, accept it
+    if (!hid.value && /^[A-Za-z]{3}$/.test(txt.value.trim())) {
+      hid.value = txt.value.trim().toUpperCase();
+      badge.textContent   = hid.value;
+      badge.style.display = 'inline-block';
+    }
+  });
+
+  txt.addEventListener('focus', function() {
+    if (this.value.length >= 2) renderDropdown(this.value);
+  });
+}
+
+setupAirportInput('origin_text', 'origin', 'origin_dropdown', 'origin_badge');
+setupAirportInput('destination_text', 'destination', 'destination_dropdown', 'destination_badge');
+
+/* Form validation: ensure IATA codes are filled */
+document.getElementById('searchForm').addEventListener('submit', function(e) {
+  const o = document.getElementById('origin').value.trim();
+  const d = document.getElementById('destination').value.trim();
+  if (!o || !d) {
+    e.preventDefault();
+    alert('Seleziona aeroporto di partenza e arrivo dal menu.');
+  }
+});
+
+/* =========================================================
+   Date validation
+   ========================================================= */
+document.getElementById('departure_date').addEventListener('change', function() {
+  const ret = document.getElementById('return_date');
+  if (this.value) {
+    ret.min = this.value;
+    if (ret.value && ret.value < this.value) ret.value = this.value;
+  }
+});
+
+/* =========================================================
+   Collega a Viaggio modal population
+   ========================================================= */
+document.querySelectorAll('.collega-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    const compagnia = this.dataset.compagnia || '—';
+    const da        = this.dataset.da || '—';
+    const a         = this.dataset.a || '—';
+    const data      = (this.dataset.data || '').replace('T', ' ').slice(0, 16);
+    const durata    = (this.dataset.durata || '').replace('PT','').replace('H','h ').replace('M','min');
+    const scali     = parseInt(this.dataset.scali || '0');
+    const prezzo    = this.dataset.prezzo || '';
+
+    document.getElementById('m_da').textContent       = da;
+    document.getElementById('m_a').textContent        = a;
+    document.getElementById('m_compagnia').textContent = compagnia;
+    document.getElementById('m_data').textContent     = data;
+    document.getElementById('m_durata').textContent   = durata + (scali > 0 ? ' · ' + scali + ' scal' + (scali === 1 ? 'a' : 'e') : ' · Diretto');
+    document.getElementById('m_prezzo').textContent   = prezzo;
+
+    // Build JSON summary
+    const voloObj = {
+      compagnia: compagnia,
+      da: da,
+      a: a,
+      data: data,
+      durata: durata,
+      scali: scali,
+      prezzo: prezzo
+    };
+    document.getElementById('modal_volo_json').value = JSON.stringify(voloObj);
+
+    document.getElementById('viaggio_id').value = '';
+  });
+});
+</script>
+{% endblock %}

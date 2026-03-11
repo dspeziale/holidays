@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('utenti.index') }}">Utenti & Ruoli</a></li>
+<li class="breadcrumb-item active">{{ title }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-7">
+
+    {% if utente is none %}
+    <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
+      <i class="bi bi-envelope-check-fill flex-shrink-0 fs-5"></i>
+      <span>La password sarà generata automaticamente e inviata via email al nuovo utente.</span>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title mb-0">
+          <i class="bi bi-person-gear me-2"></i>{{ title }}
+        </h3>
+      </div>
+      <div class="card-body">
+        <form method="POST"
+              action="{% if utente %}{{ url_for('utenti.modifica', id=utente.id) }}{% else %}{{ url_for('utenti.nuovo') }}{% endif %}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <!-- Username -->
+          <div class="mb-3">
+            <label for="username" class="form-label fw-semibold">
+              Username <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-person"></i></span>
+              <input type="text" class="form-control" id="username" name="username"
+                     required maxlength="80"
+                     value="{{ utente.username if utente else '' }}"
+                     placeholder="Inserisci username">
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="mb-3">
+            <label for="email" class="form-label fw-semibold">
+              Email <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+              <input type="email" class="form-control" id="email" name="email"
+                     required maxlength="120"
+                     value="{{ utente.email if utente else '' }}"
+                     placeholder="Inserisci indirizzo email">
+            </div>
+          </div>
+
+          <!-- Ruolo -->
+          <div class="mb-3">
+            <label for="role" class="form-label fw-semibold">
+              Ruolo <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-shield"></i></span>
+              <select class="form-select" id="role" name="role" required>
+                <option value="">-- Seleziona ruolo --</option>
+                <option value="operatore"
+                  {% if utente and utente.role == 'operatore' %}selected{% endif %}>
+                  Operatore
+                </option>
+                <option value="manager"
+                  {% if utente and utente.role == 'manager' %}selected{% endif %}>
+                  Manager
+                </option>
+                <option value="admin"
+                  {% if utente and utente.role == 'admin' %}selected{% endif %}>
+                  Admin
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Stato attivo -->
+          <div class="mb-4">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     id="attivo" name="attivo"
+                     {% if utente is none or utente.attivo %}checked{% endif %}>
+              <label class="form-check-label fw-semibold" for="attivo">
+                Utente attivo
+              </label>
+            </div>
+            <div class="form-text">
+              Un utente disattivo non può accedere al sistema.
+            </div>
+          </div>
+
+          <!-- Azioni -->
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i>
+              {% if utente %}Salva modifiche{% else %}Crea utente{% endif %}
+            </button>
+            <a href="{{ url_for('utenti.index') }}" class="btn btn-secondary">
+              <i class="bi bi-x-lg me-1"></i>Annulla
+            </a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

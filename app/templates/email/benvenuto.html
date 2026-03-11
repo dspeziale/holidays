@@ -1,0 +1,38 @@
+{% extends 'email/base_email.html' %}
+
+{% block email_body %}
+<p>Ciao <strong>{{ user.username }}</strong>,</p>
+
+<p>Benvenuto nel gestionale di <strong>Roma Lusso Travel</strong>!
+   Il tuo account è stato creato con successo. Di seguito trovi le credenziali
+   di accesso.</p>
+
+<div class="credentials">
+  <table>
+    <tr>
+      <td class="label">Email di accesso:</td>
+      <td class="value">{{ user.email }}</td>
+    </tr>
+    <tr>
+      <td class="label">Password temporanea:</td>
+      <td class="value">{{ password_generata }}</td>
+    </tr>
+  </table>
+</div>
+
+<div class="alert-box">
+  <strong>Importante:</strong> al primo accesso ti verrà chiesto di cambiare
+  la password. Conserva queste credenziali in un posto sicuro.
+</div>
+
+<p>Puoi accedere al gestionale cliccando sul pulsante qui sotto:</p>
+
+<a href="{{ url_for('auth.login', _external=True) }}" class="btn">
+  Accedi al Gestionale
+</a>
+
+<p style="margin-top:24px; font-size:13px; color:#6c757d;">
+  Se non sei stato tu a richiedere questo account, contatta immediatamente
+  l'amministratore del sistema.
+</p>
+{% endblock %}

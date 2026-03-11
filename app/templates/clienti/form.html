@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} — Roma Lusso Travel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-3">
+    <div class="col">
+      <h1 class="h3 fw-bold">
+        <i class="bi bi-person-{% if cliente %}pencil{% else %}plus-fill{% endif %} me-2"></i>{{ title }}
+      </h1>
+    </div>
+    <div class="col-auto">
+      <a href="{{ url_for('clienti.index') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Torna alla lista
+      </a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="row g-3">
+          <!-- Nome e Cognome -->
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.nome.label(class='form-label fw-semibold') }}
+              {{ form.nome(class='form-control' + (' is-invalid' if form.nome.errors else '')) }}
+              {% for error in form.nome.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.cognome.label(class='form-label fw-semibold') }}
+              {{ form.cognome(class='form-control' + (' is-invalid' if form.cognome.errors else '')) }}
+              {% for error in form.cognome.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Email e Telefono -->
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.email.label(class='form-label fw-semibold') }}
+              {{ form.email(class='form-control' + (' is-invalid' if form.email.errors else '')) }}
+              {% for error in form.email.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.telefono.label(class='form-label fw-semibold') }}
+              {{ form.telefono(class='form-control' + (' is-invalid' if form.telefono.errors else '')) }}
+              {% for error in form.telefono.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Data di nascita e Nazionalità -->
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.data_nascita.label(class='form-label fw-semibold') }}
+              {{ form.data_nascita(class='form-control' + (' is-invalid' if form.data_nascita.errors else '')) }}
+              {% for error in form.data_nascita.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.nazionalita.label(class='form-label fw-semibold') }}
+              {{ form.nazionalita(class='form-control' + (' is-invalid' if form.nazionalita.errors else '')) }}
+              {% for error in form.nazionalita.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Documento -->
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.tipo_documento.label(class='form-label fw-semibold') }}
+              {{ form.tipo_documento(class='form-control' + (' is-invalid' if form.tipo_documento.errors else '')) }}
+              {% for error in form.tipo_documento.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.numero_documento.label(class='form-label fw-semibold') }}
+              {{ form.numero_documento(class='form-control' + (' is-invalid' if form.numero_documento.errors else '')) }}
+              {% for error in form.numero_documento.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Date documento -->
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.data_rilascio_documento.label(class='form-label fw-semibold') }}
+              {{ form.data_rilascio_documento(class='form-control' + (' is-invalid' if form.data_rilascio_documento.errors else '')) }}
+              {% for error in form.data_rilascio_documento.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.data_scadenza_documento.label(class='form-label fw-semibold') }}
+              {{ form.data_scadenza_documento(class='form-control' + (' is-invalid' if form.data_scadenza_documento.errors else '')) }}
+              {% for error in form.data_scadenza_documento.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Indirizzo -->
+          <div class="col-12">
+            <div class="mb-3">
+              {{ form.indirizzo.label(class='form-label fw-semibold') }}
+              {{ form.indirizzo(class='form-control' + (' is-invalid' if form.indirizzo.errors else '')) }}
+              {% for error in form.indirizzo.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Città, CAP, Paese -->
+          <div class="col-md-5">
+            <div class="mb-3">
+              {{ form.citta.label(class='form-label fw-semibold') }}
+              {{ form.citta(class='form-control' + (' is-invalid' if form.citta.errors else '')) }}
+              {% for error in form.citta.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="mb-3">
+              {{ form.cap.label(class='form-label fw-semibold') }}
+              {{ form.cap(class='form-control' + (' is-invalid' if form.cap.errors else '')) }}
+              {% for error in form.cap.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="mb-3">
+              {{ form.paese.label(class='form-label fw-semibold') }}
+              {{ form.paese(class='form-control' + (' is-invalid' if form.paese.errors else '')) }}
+              {% for error in form.paese.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Lingua preferita -->
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.lingua_preferita.label(class='form-label fw-semibold') }}
+              {{ form.lingua_preferita(class='form-control' + (' is-invalid' if form.lingua_preferita.errors else '')) }}
+              {% for error in form.lingua_preferita.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Note -->
+          <div class="col-12">
+            <div class="mb-3">
+              {{ form.note.label(class='form-label fw-semibold') }}
+              {{ form.note(class='form-control' + (' is-invalid' if form.note.errors else ''), rows=3) }}
+              {% for error in form.note.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Attivo -->
+          <div class="col-12">
+            <div class="mb-3 form-check">
+              {{ form.attivo(class='form-check-input') }}
+              {{ form.attivo.label(class='form-check-label fw-semibold') }}
+            </div>
+          </div>
+        </div>
+
+        <hr>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Salva
+          </button>
+          <a href="{{ url_for('clienti.index') }}" class="btn btn-secondary">
+            <i class="bi bi-x-lg me-1"></i>Annulla
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

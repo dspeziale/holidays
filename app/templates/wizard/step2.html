@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}Wizard Viaggio — Step 2{% endblock %}
+{% block page_title %}Nuovo Viaggio — Dati{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('viaggi.index') }}">Viaggi</a></li>
+<li class="breadcrumb-item active">Nuovo — Step 2</li>
+{% endblock %}
+
+{% block content %}
+{% include 'wizard/_progress.html' %}
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0"><i class="bi bi-suitcase me-2 text-primary"></i>Dati del viaggio</h5>
+        <span class="badge text-bg-primary">
+          <i class="bi bi-person me-1"></i>{{ cliente.nome }} {{ cliente.cognome }}
+        </span>
+      </div>
+      <div class="card-body">
+        <form method="POST" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Nome viaggio <span class="text-danger">*</span></label>
+              <input type="text" name="nome" class="form-control"
+                     value="{{ wiz.get('nome', '') }}"
+                     placeholder="es. Luna di Miele a Roma, Famiglia in Toscana..." required>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label fw-semibold">Destinazione principale</label>
+              <input type="text" name="destinazione" class="form-control"
+                     value="{{ wiz.get('destinazione', '') }}" placeholder="es. Roma, Amalfi, Firenze">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Adulti</label>
+              <input type="number" name="n_adulti" class="form-control"
+                     value="{{ wiz.get('n_adulti', 1) }}" min="1" max="20">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Bambini</label>
+              <input type="number" name="n_bambini" class="form-control"
+                     value="{{ wiz.get('n_bambini', 0) }}" min="0" max="20">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Data partenza</label>
+              <input type="date" name="data_partenza" class="form-control"
+                     value="{{ wiz.get('data_partenza', '') }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Data rientro</label>
+              <input type="date" name="data_rientro" class="form-control"
+                     value="{{ wiz.get('data_rientro', '') }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Budget cliente (€)</label>
+              <div class="input-group">
+                <span class="input-group-text">€</span>
+                <input type="number" name="budget" class="form-control" step="0.01" min="0"
+                       value="{{ wiz.get('budget', '') }}" placeholder="0.00">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold d-block">Servizi richiesti</label>
+              <div class="d-flex gap-3 mt-2">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="include_volo" id="iv"
+                         {% if wiz.get('include_volo') %}checked{% endif %}>
+                  <label class="form-check-label" for="iv"><i class="bi bi-airplane me-1"></i>Volo</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="include_hotel" id="ih"
+                         {% if wiz.get('include_hotel') %}checked{% endif %}>
+                  <label class="form-check-label" for="ih"><i class="bi bi-building me-1"></i>Hotel</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="include_auto" id="ia"
+                         {% if wiz.get('include_auto') %}checked{% endif %}>
+                  <label class="form-check-label" for="ia"><i class="bi bi-car-front me-1"></i>Auto</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="include_treno" id="itr"
+                         {% if wiz.get('include_treno') %}checked{% endif %}>
+                  <label class="form-check-label" for="itr"><i class="bi bi-train-front me-1"></i>Treno</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="include_transfer" id="itf"
+                         {% if wiz.get('include_transfer') %}checked{% endif %}>
+                  <label class="form-check-label" for="itf"><i class="bi bi-taxi-front me-1"></i>Transfer</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Note del cliente</label>
+              <textarea name="note_cliente" class="form-control" rows="3"
+                        placeholder="Richieste speciali, allergie, preferenze...">{{ wiz.get('note_cliente', '') }}</textarea>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between mt-4">
+            <a href="{{ url_for('wizard.step1') }}" class="btn btn-outline-secondary">
+              <i class="bi bi-arrow-left me-1"></i>Indietro
+            </a>
+            <button type="submit" class="btn btn-primary">
+              Avanti: Tour <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

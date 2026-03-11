@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Wizard Viaggio — Step 4{% endblock %}
+{% block page_title %}Nuovo Viaggio — Esperienze{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('viaggi.index') }}">Viaggi</a></li>
+<li class="breadcrumb-item active">Nuovo — Step 4</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dnd-zone { min-height:100px; border:2px dashed #dee2e6; border-radius:8px; padding:8px; background:#f8f9fa; }
+  .dnd-zone.selected-zone { background:#f0faff; border-color:#0dcaf0; }
+  .dnd-item { display:flex; align-items:center; background:#fff; border:1px solid #dee2e6;
+    border-radius:6px; padding:8px 10px; margin-bottom:6px; cursor:grab; user-select:none; }
+  .dnd-item:hover { box-shadow:0 2px 6px rgba(0,0,0,.1); }
+  .drag-handle { color:#adb5bd; margin-right:8px; }
+  .item-info { flex:1; min-width:0; }
+  .item-name { font-weight:600; font-size:.875rem; }
+  .item-sub  { font-size:.75rem; color:#6c757d; }
+  .sortable-ghost { opacity:.4; background:#cff4fc !important; }
+  .dnd-empty { color:#adb5bd; text-align:center; padding:20px 8px; font-size:.875rem; pointer-events:none; }
+  .zone-label { font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; color:#6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include 'wizard/_progress.html' %}
+<div id="hiddenEsp"></div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-stars me-2 text-info"></i>Esperienze del viaggio</h6>
+        <span class="badge text-bg-info" id="badge-esp">0 selezionate</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="zone-label">Disponibili</div>
+            <div id="esp-src" class="dnd-zone">
+              {% for e in esp_disp %}
+                {% if e.id not in selected_esperienze %}
+                <div class="dnd-item" data-id="{{ e.id }}">
+                  <i class="bi bi-grip-vertical drag-handle"></i>
+                  <div class="item-info">
+                    <div class="item-name">{{ e.nome }}</div>
+                    <div class="item-sub">{{ e.destinazione }} · {{ e.durata_ore }}h · {{ e.categoria or '' }}</div>
+                  </div>
+                  <span class="badge text-bg-info ms-2">€{{ "%.0f"|format(e.prezzo_adulto) }}</span>
+                </div>
+                {% endif %}
+              {% endfor %}
+              <div class="dnd-empty" id="src-empty">Nessuna esperienza disponibile</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="zone-label text-info">Nel viaggio</div>
+            <div id="esp-dst" class="dnd-zone selected-zone">
+              {% for e in esp_disp %}
+                {% if e.id in selected_esperienze %}
+                <div class="dnd-item" data-id="{{ e.id }}">
+                  <i class="bi bi-grip-vertical drag-handle"></i>
+                  <div class="item-info">
+                    <div class="item-name">{{ e.nome }}</div>
+                    <div class="item-sub">{{ e.destinazione }} · {{ e.durata_ore }}h</div>
+                  </div>
+                  <span class="badge text-bg-info ms-2">€{{ "%.0f"|format(e.prezzo_adulto) }}</span>
+                </div>
+                {% endif %}
+              {% endfor %}
+              <div class="dnd-empty" id="dst-empty">Trascina qui le esperienze</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card bg-light border-0 mb-3">
+      <div class="card-body">
+        <h6 class="fw-bold mb-2"><i class="bi bi-map me-1 text-success"></i>Tour selezionati</h6>
+        {% if wiz.get('tour_ids') %}
+          <ul class="list-unstyled small mb-0">
+          {% for tid in wiz.tour_ids %}
+            <li class="py-1 border-bottom"><i class="bi bi-check-circle text-success me-1"></i>Tour #{{ tid }}</li>
+          {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted small mb-0">Nessun tour selezionato</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<form id="frmStep4" method="POST" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+
+<div class="d-flex justify-content-between mt-2">
+  <a href="{{ url_for('wizard.step3') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Indietro
+  </a>
+  <button type="submit" form="frmStep4" class="btn btn-primary">
+    Avanti: Riepilogo <i class="bi bi-arrow-right ms-1"></i>
+  </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+const hiddenContainer = document.getElementById('hiddenEsp');
+const form = document.getElementById('frmStep4');
+
+function syncHiddens() {
+  const items = document.querySelectorAll('#esp-dst .dnd-item');
+  hiddenContainer.innerHTML = '';
+  items.forEach(item => {
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'esperienza_ids'; inp.value = item.dataset.id;
+    hiddenContainer.appendChild(inp);
+  });
+  document.getElementById('badge-esp').textContent = items.length + ' selezionate';
+  document.getElementById('dst-empty').style.display = items.length === 0 ? '' : 'none';
+  const srcItems = document.querySelectorAll('#esp-src .dnd-item');
+  document.getElementById('src-empty').style.display = srcItems.length === 0 ? '' : 'none';
+}
+
+Sortable.create(document.getElementById('esp-src'), {
+  group: 'esp', animation: 150, handle: '.drag-handle',
+  ghostClass: 'sortable-ghost', onAdd: syncHiddens, onRemove: syncHiddens,
+});
+Sortable.create(document.getElementById('esp-dst'), {
+  group: 'esp', animation: 150, handle: '.drag-handle',
+  ghostClass: 'sortable-ghost', onAdd: syncHiddens, onRemove: syncHiddens, onSort: syncHiddens,
+});
+
+syncHiddens();
+
+// Append hiddenEsp to form on submit
+document.getElementById('frmStep4').addEventListener('submit', function() {
+  document.querySelectorAll('#hiddenEsp input').forEach(inp => this.appendChild(inp.cloneNode()));
+});
+</script>
+{% endblock %}

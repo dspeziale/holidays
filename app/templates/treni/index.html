@@ -1,0 +1,530 @@
+{% extends 'base.html' %}
+{% block title %}Ricerca Treni{% endblock %}
+{% block page_title %}Ricerca Treni{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Treni</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .treno-card { transition: box-shadow .15s; }
+  .treno-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12) !important; }
+  .orario-big { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+  .freccia-line { flex:1; border-top:2px solid #dee2e6; margin:0 8px; position:relative; }
+  .freccia-line::after { content:''; position:absolute; right:-1px; top:-5px;
+    border-left:6px solid #dee2e6; border-top:4px solid transparent; border-bottom:4px solid transparent; }
+  @media(max-width:575px) { .orario-big { font-size:1.2rem; } }
+
+  /* Modal booking */
+  .booking-detail-row { display:flex; justify-content:space-between; align-items:center;
+    padding:.45rem 0; border-bottom:1px solid #f0f0f0; }
+  .booking-detail-row:last-child { border-bottom:none; }
+  .booking-detail-label { color:#6c757d; font-size:.82rem; min-width:110px; }
+  .booking-detail-value { font-weight:600; text-align:right; font-size:.92rem; }
+  .carrier-btn { border-radius:10px; padding:.65rem 1.2rem; font-size:.95rem; }
+  .badge-treno-tipo { font-size:.75rem; font-weight:700; letter-spacing:.03em; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="alert alert-info d-flex align-items-start gap-2 mb-4">
+  <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+  <div>
+    <strong>Motore demo</strong> — Orari e prezzi simulati.
+    Clicca <strong>Prenota</strong> per aprire il sito ufficiale con i dati di ricerca pre-impostati.
+  </div>
+</div>
+
+<!-- Modulo ricerca -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header">
+    <h6 class="card-title mb-0"><i class="bi bi-train-front me-2 text-primary"></i>Cerca treni</h6>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('treni.index') }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-sm-6 col-lg-3">
+          <label class="form-label fw-semibold small">Da <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+            <input type="text" name="origine" class="form-control" required list="stazioni-list"
+                   placeholder="es. Roma, Milano..."
+                   value="{{ risultato._form.origine if risultato and risultato._form else '' }}">
+          </div>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-3">
+          <label class="form-label fw-semibold small">A <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-geo-alt-fill"></i></span>
+            <input type="text" name="destinazione" class="form-control" required list="stazioni-list"
+                   placeholder="es. Firenze, Napoli..."
+                   value="{{ risultato._form.destinazione if risultato and risultato._form else '' }}">
+          </div>
+        </div>
+        <div class="col-12 col-sm-4 col-lg-2">
+          <label class="form-label fw-semibold small">Data <span class="text-danger">*</span></label>
+          <input type="date" name="data_viaggio" class="form-control" required min="{{ oggi }}"
+                 value="{{ (risultato._form.data_viaggio if risultato and risultato._form else oggi) }}">
+        </div>
+        <div class="col-6 col-sm-4 col-lg-2">
+          <label class="form-label fw-semibold small">Adulti</label>
+          <input type="number" name="n_adulti" class="form-control" min="1" max="9"
+                 value="{{ risultato._form.n_adulti if risultato and risultato._form else 1 }}">
+        </div>
+        <div class="col-6 col-sm-4 col-lg-2">
+          <label class="form-label fw-semibold small">Bambini</label>
+          <input type="number" name="n_bambini" class="form-control" min="0" max="9"
+                 value="{{ risultato._form.n_bambini if risultato and risultato._form else 0 }}">
+        </div>
+        <div class="col-12 col-lg-auto">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-search me-1"></i>Cerca treni
+          </button>
+        </div>
+      </div>
+    </form>
+    <datalist id="stazioni-list">
+      {% for code, nome in stazioni %}
+      <option value="{{ nome }}">{{ nome }}</option>
+      {% endfor %}
+    </datalist>
+  </div>
+</div>
+
+<!-- ── Risultati ── -->
+{% if risultato %}
+
+  {% if risultato.error %}
+  <div class="alert alert-warning d-flex align-items-center gap-2">
+    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>{{ risultato.error }}
+  </div>
+
+  {% elif risultato.get('nessuna_tratta') %}
+  <div class="alert alert-info d-flex align-items-start gap-2">
+    <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+    <div>
+      Nessun treno diretto nel database demo tra
+      <strong>{{ risultato.origine_nome }}</strong> e <strong>{{ risultato.destinazione_nome }}</strong>.
+      <div class="mt-2 d-flex gap-2 flex-wrap">
+        <a href="{{ risultato.url_trenitalia }}" target="_blank" rel="noopener" class="btn btn-sm btn-danger">
+          <i class="bi bi-box-arrow-up-right me-1"></i>Cerca su Trenitalia
+        </a>
+        <a href="{{ risultato.url_italo }}" target="_blank" rel="noopener" class="btn btn-sm btn-success">
+          <i class="bi bi-box-arrow-up-right me-1"></i>Cerca su Italo
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+
+  <!-- Header risultati -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+      <h5 class="mb-0 fw-bold">
+        <i class="bi bi-arrow-right me-1 text-primary"></i>
+        {{ risultato.origine_nome }} → {{ risultato.destinazione_nome }}
+      </h5>
+      <small class="text-muted">
+        {{ risultato.data }}
+        · {{ risultato._form.n_adulti }} adult{{ 'o' if risultato._form.n_adulti == 1 else 'i' }}
+        {% if risultato._form.n_bambini %}, {{ risultato._form.n_bambini }} bambin{{ 'o' if risultato._form.n_bambini == 1 else 'i' }}{% endif %}
+        · <span class="badge text-bg-info">DEMO</span>
+      </small>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ risultato.url_trenitalia }}" target="_blank" rel="noopener"
+         class="btn btn-outline-danger btn-sm">
+        <i class="bi bi-box-arrow-up-right me-1"></i>Trenitalia
+      </a>
+      <a href="{{ risultato.url_italo }}" target="_blank" rel="noopener"
+         class="btn btn-outline-success btn-sm">
+        <i class="bi bi-box-arrow-up-right me-1"></i>Italo
+      </a>
+    </div>
+  </div>
+
+  <!-- Cards treni -->
+  {% if risultato.treni %}
+  <div class="row g-3">
+    {% for t in risultato.treni %}
+    <div class="col-12">
+      <div class="card treno-card shadow-sm">
+        <div class="card-body py-3">
+          <div class="row align-items-center g-2">
+
+            <!-- Tipo treno -->
+            <div class="col-auto text-center" style="min-width:62px">
+              <span class="badge text-bg-{{ t.tipo_badge }} badge-treno-tipo d-block mb-1">{{ t.tipo }}</span>
+              <div style="font-size:.7rem;color:#6c757d;line-height:1.2">{{ t.tipo_label }}</div>
+              <div style="font-size:.65rem;color:#adb5bd">{{ t.num_treno }}</div>
+            </div>
+
+            <!-- Orario -->
+            <div class="col">
+              <div class="d-flex align-items-center">
+                <div class="text-center">
+                  <div class="orario-big">{{ t.partenza }}</div>
+                  <div class="small text-muted"
+                       style="max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">
+                    {{ risultato.origine_nome.split(' ')[0] }}
+                  </div>
+                </div>
+                <div class="flex-grow-1 d-flex flex-column align-items-center mx-2">
+                  <div class="text-muted small mb-1">{{ t.durata }}</div>
+                  <div class="d-flex align-items-center w-100">
+                    <div class="freccia-line"></div>
+                  </div>
+                  <div class="text-muted" style="font-size:.7rem;margin-top:3px">{{ t.tipo_classe }}</div>
+                </div>
+                <div class="text-center">
+                  <div class="orario-big">{{ t.arrivo }}</div>
+                  <div class="small text-muted"
+                       style="max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">
+                    {{ risultato.destinazione_nome.split(' ')[0] }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Prezzo + Prenota -->
+            <div class="col-auto text-end">
+              <span class="badge text-bg-{{ t.posti_class }} d-block mb-1">{{ t.posti_label }}</span>
+              <div class="fw-bold fs-5 text-primary">
+                €{{ '%.0f'|format(t.prezzo_adulto) }}<small class="text-muted fw-normal fs-6">/pers.</small>
+              </div>
+              {% if t.passeggeri > 1 %}
+              <div class="text-muted small">Tot. €{{ '%.0f'|format(t.prezzo_totale) }}</div>
+              {% endif %}
+
+              {# Pulsante che apre il modal con tutti i dati #}
+              <button type="button"
+                class="btn btn-sm mt-2 {% if t.operatore == 'Italo' %}btn-success{% else %}btn-danger{% endif %} prenota-btn"
+                data-bs-toggle="modal" data-bs-target="#modalPrenota"
+                data-origine="{{ risultato.origine_nome }}"
+                data-destinazione="{{ risultato.destinazione_nome }}"
+                data-data="{{ risultato.data }}"
+                data-partenza="{{ t.partenza }}"
+                data-arrivo="{{ t.arrivo }}"
+                data-durata="{{ t.durata }}"
+                data-tipo="{{ t.tipo_label }}"
+                data-numero="{{ t.num_treno }}"
+                data-operatore="{{ t.operatore }}"
+                data-adulti="{{ risultato._form.n_adulti }}"
+                data-bambini="{{ risultato._form.n_bambini }}"
+                data-prezzo-adu="{{ '%.0f'|format(t.prezzo_adulto) }}"
+                data-prezzo-tot="{{ '%.0f'|format(t.prezzo_totale) }}"
+                data-url-trenitalia="{{ risultato.url_trenitalia }}"
+                data-url-italo="{{ risultato.url_italo }}">
+                <i class="bi bi-ticket-perforated me-1"></i>Prenota
+              </button>
+              {% if viaggi %}
+              <button type="button"
+                class="btn btn-sm btn-outline-primary mt-2 collega-treno-btn"
+                data-bs-toggle="modal" data-bs-target="#collegaTrenoModal"
+                data-origine="{{ risultato.origine_nome }}"
+                data-destinazione="{{ risultato.destinazione_nome }}"
+                data-data="{{ risultato.data }}"
+                data-partenza="{{ t.partenza }}"
+                data-arrivo="{{ t.arrivo }}"
+                data-durata="{{ t.durata }}"
+                data-tipo="{{ t.tipo_label }}"
+                data-operatore="{{ t.operatore }}"
+                data-prezzo-tot="{{ '%.0f'|format(t.prezzo_totale) }}">
+                <i class="bi bi-link-45deg me-1"></i>Collega
+              </button>
+              {% endif %}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <p class="text-muted small mt-3">
+    <i class="bi bi-exclamation-circle me-1"></i>
+    Prezzi indicativi e simulati. I prezzi reali variano in base a disponibilita' e tariffa.
+  </p>
+
+  {% else %}
+  <div class="alert alert-info">Nessun treno trovato per questa tratta.</div>
+  {% endif %}
+
+  {% endif %}
+{% endif %}
+
+
+<!-- ═══════════════════════════════════
+     MODAL COLLEGA TRENO A VIAGGIO
+═══════════════════════════════════════ -->
+{% if viaggi %}
+<div class="modal fade" id="collegaTrenoModal" tabindex="-1" aria-labelledby="collegaTrenoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="collegaTrenoModalLabel">
+          <i class="bi bi-link-45deg me-2"></i>Collega Treno a Viaggio
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('treni.collega_treno') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="treno_json" id="modal_treno_json">
+        <div class="modal-body">
+          <!-- Riepilogo treno -->
+          <div class="alert alert-light border mb-3 py-2">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-train-front text-primary fs-4"></i>
+              <div>
+                <div class="fw-bold">
+                  <span id="m_treno_origine"></span>
+                  <i class="bi bi-arrow-right mx-1 text-muted"></i>
+                  <span id="m_treno_destinazione"></span>
+                </div>
+                <div class="text-muted small">
+                  <span id="m_treno_data"></span>
+                  <span class="mx-1">·</span>
+                  <span id="m_treno_partenza"></span>–<span id="m_treno_arrivo"></span>
+                  <span class="mx-1">·</span>
+                  <span id="m_treno_tipo"></span>
+                  <span class="mx-1">·</span>
+                  <span id="m_treno_operatore"></span>
+                </div>
+              </div>
+              <div class="ms-auto">
+                <span class="badge text-bg-success fs-6">€<span id="m_treno_prezzo"></span></span>
+              </div>
+            </div>
+          </div>
+          <!-- Selezione viaggio -->
+          <label for="treno_viaggio_id" class="form-label fw-semibold">
+            Seleziona il Viaggio <span class="text-danger">*</span>
+          </label>
+          <select class="form-select" name="viaggio_id" id="treno_viaggio_id" required>
+            <option value="">— Seleziona un viaggio —</option>
+            {% for v in viaggi %}
+            <option value="{{ v.id }}">
+              {{ v.nome }}
+              {% if v.cliente %} — {{ v.cliente.nome_completo() }}{% endif %}
+              {% if v.data_partenza %} ({{ v.data_partenza.strftime('%d/%m/%Y') }}){% endif %}
+              · {{ v.stato_label() }}
+            </option>
+            {% endfor %}
+          </select>
+          <div class="form-text mt-1">
+            <i class="bi bi-info-circle me-1"></i>Il flag "include treno" verrà attivato automaticamente.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-link-45deg me-1"></i>Collega
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ═══════════════════════════════════
+     MODAL PRENOTAZIONE
+═══════════════════════════════════════ -->
+<div class="modal fade" id="modalPrenota" tabindex="-1" aria-labelledby="modalPrenotaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header border-0 pb-1">
+        <h5 class="modal-title fw-bold" id="modalPrenotaLabel">
+          <i class="bi bi-ticket-perforated me-2 text-primary"></i>Riepilogo prenotazione
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body pt-2">
+
+        <!-- Dati viaggio -->
+        <div class="bg-light rounded-3 px-3 py-2 mb-3">
+          <div class="booking-detail-row">
+            <span class="booking-detail-label"><i class="bi bi-geo-alt me-1 text-primary"></i>Partenza</span>
+            <span class="booking-detail-value" id="bk-origine">—</span>
+          </div>
+          <div class="booking-detail-row">
+            <span class="booking-detail-label"><i class="bi bi-geo-alt-fill me-1 text-danger"></i>Arrivo</span>
+            <span class="booking-detail-value" id="bk-destinazione">—</span>
+          </div>
+          <div class="booking-detail-row">
+            <span class="booking-detail-label"><i class="bi bi-calendar me-1"></i>Data</span>
+            <span class="booking-detail-value" id="bk-data">—</span>
+          </div>
+          <div class="booking-detail-row">
+            <span class="booking-detail-label"><i class="bi bi-clock me-1"></i>Orario</span>
+            <span class="booking-detail-value" id="bk-orario">—</span>
+          </div>
+          <div class="booking-detail-row">
+            <span class="booking-detail-label"><i class="bi bi-train-front me-1"></i>Treno</span>
+            <span class="booking-detail-value" id="bk-treno">—</span>
+          </div>
+          <div class="booking-detail-row">
+            <span class="booking-detail-label"><i class="bi bi-people me-1"></i>Passeggeri</span>
+            <span class="booking-detail-value" id="bk-passeggeri">—</span>
+          </div>
+          <div class="booking-detail-row">
+            <span class="booking-detail-label"><i class="bi bi-tag me-1"></i>Prezzo stimato</span>
+            <span class="booking-detail-value text-primary fw-bold" id="bk-prezzo">—</span>
+          </div>
+        </div>
+
+        <p class="text-muted small mb-3">
+          <i class="bi bi-info-circle me-1"></i>
+          I dati di ricerca sono passati automaticamente al sito.
+          Se la form non risulta compilata, usa i dati mostrati sopra o copiaci con il pulsante.
+        </p>
+
+        <!-- Bottoni carrier + copia -->
+        <div class="d-grid gap-2" id="bk-buttons"></div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  var modal = document.getElementById('modalPrenota');
+  if (!modal) return;
+
+  modal.addEventListener('show.bs.modal', function (e) {
+    var btn = e.relatedTarget;
+    if (!btn) return;
+    var d = btn.dataset;
+
+    // Data ISO → dd/mm/yyyy
+    function fmtData(s) {
+      if (!s) return s;
+      var p = s.split('-');
+      return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : s;
+    }
+
+    var adulti  = parseInt(d.adulti)  || 1;
+    var bambini = parseInt(d.bambini) || 0;
+    var passTxt = adulti + (adulti === 1 ? ' adulto' : ' adulti');
+    if (bambini > 0) passTxt += ', ' + bambini + (bambini === 1 ? ' bambino' : ' bambini');
+
+    var prezzoTxt = '\u20ac' + d.prezzoAdu + '/persona';
+    if (adulti + bambini > 1) prezzoTxt += '  (tot. \u20ac' + d.prezzoTot + ')';
+
+    modal.querySelector('#bk-origine').textContent      = d.origine;
+    modal.querySelector('#bk-destinazione').textContent = d.destinazione;
+    modal.querySelector('#bk-data').textContent         = fmtData(d.data);
+    modal.querySelector('#bk-orario').textContent       = d.partenza + ' \u2192 ' + d.arrivo + '  (' + d.durata + ')';
+    modal.querySelector('#bk-treno').textContent        = d.tipo + ' ' + d.numero + '  \u2014  ' + d.operatore;
+    modal.querySelector('#bk-passeggeri').textContent   = passTxt;
+    modal.querySelector('#bk-prezzo').textContent       = prezzoTxt;
+
+    // Bottoni carrier
+    var box = modal.querySelector('#bk-buttons');
+    box.innerHTML = '';
+
+    function makeCarrierBtn(url, cls, icon, label) {
+      var a = document.createElement('a');
+      a.href      = url;
+      a.target    = '_blank';
+      a.rel       = 'noopener noreferrer';
+      a.className = 'btn ' + cls + ' carrier-btn d-flex align-items-center justify-content-center gap-2';
+      a.innerHTML = '<i class="bi bi-' + icon + '"></i><span>Prenota su <strong>' + label + '</strong></span>';
+      return a;
+    }
+
+    var btnTreno = makeCarrierBtn(d.urlTrenitalia, 'btn-danger',  'box-arrow-up-right', 'Trenitalia');
+    var btnItalo = makeCarrierBtn(d.urlItalo,      'btn-success', 'box-arrow-up-right', 'Italo');
+
+    if (d.operatore === 'Italo') {
+      box.appendChild(btnItalo);
+      box.appendChild(btnTreno);
+    } else {
+      box.appendChild(btnTreno);
+      box.appendChild(btnItalo);
+    }
+
+    // Bottone copia dati
+    var copyWrap = document.createElement('div');
+    copyWrap.className = 'text-center mt-1';
+    copyWrap.innerHTML =
+      '<button type="button" class="btn btn-link btn-sm text-muted">' +
+      '<i class="bi bi-clipboard me-1"></i>Copia dati di ricerca negli appunti</button>';
+    box.appendChild(copyWrap);
+
+    var copyBtn = copyWrap.querySelector('button');
+    copyBtn.addEventListener('click', function () {
+      var txt =
+        'Da: '        + d.origine            + '\n' +
+        'A: '         + d.destinazione       + '\n' +
+        'Data: '      + fmtData(d.data)      + '\n' +
+        'Partenza: '  + d.partenza           + '\n' +
+        'Adulti: '    + d.adulti             + '\n' +
+        'Bambini: '   + d.bambini;
+      navigator.clipboard.writeText(txt).then(function () {
+        copyBtn.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Copiato!';
+        setTimeout(function () {
+          copyBtn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copia dati di ricerca negli appunti';
+        }, 2500);
+      }).catch(function() {
+        // fallback: seleziona testo in textarea temporanea
+        var ta = document.createElement('textarea');
+        ta.value = txt;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        copyBtn.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Copiato!';
+        setTimeout(function () {
+          copyBtn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copia dati di ricerca negli appunti';
+        }, 2500);
+      });
+    });
+  });
+
+});
+
+/* Collega treno modal */
+document.querySelectorAll('.collega-treno-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var d = this.dataset;
+    document.getElementById('m_treno_origine').textContent      = d.origine      || '';
+    document.getElementById('m_treno_destinazione').textContent = d.destinazione || '';
+    document.getElementById('m_treno_data').textContent         = d.data         || '';
+    document.getElementById('m_treno_partenza').textContent     = d.partenza     || '';
+    document.getElementById('m_treno_arrivo').textContent       = d.arrivo       || '';
+    document.getElementById('m_treno_tipo').textContent         = d.tipo         || '';
+    document.getElementById('m_treno_operatore').textContent    = d.operatore    || '';
+    document.getElementById('m_treno_prezzo').textContent       = d.prezzoTot    || '';
+    document.getElementById('treno_viaggio_id').value           = '';
+
+    var obj = {
+      origine:      d.origine      || '',
+      destinazione: d.destinazione || '',
+      data:         d.data         || '',
+      partenza:     d.partenza     || '',
+      arrivo:       d.arrivo       || '',
+      durata:       d.durata       || '',
+      tipo:         d.tipo         || '',
+      operatore:    d.operatore    || '',
+      prezzo_tot:   d.prezzoTot    || '',
+    };
+    document.getElementById('modal_treno_json').value = JSON.stringify(obj);
+  });
+});
+</script>
+{% endblock %}

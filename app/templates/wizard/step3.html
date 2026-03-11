@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% block title %}Wizard Viaggio — Step 3{% endblock %}
+{% block page_title %}Nuovo Viaggio — Tour{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('viaggi.index') }}">Viaggi</a></li>
+<li class="breadcrumb-item active">Nuovo — Step 3</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dnd-zone { min-height:100px; border:2px dashed #dee2e6; border-radius:8px; padding:8px; background:#f8f9fa; }
+  .dnd-zone.selected-zone { background:#f0fff4; border-color:#198754; }
+  .dnd-item { display:flex; align-items:center; background:#fff; border:1px solid #dee2e6;
+    border-radius:6px; padding:8px 10px; margin-bottom:6px; cursor:grab; user-select:none; }
+  .dnd-item:hover { box-shadow:0 2px 6px rgba(0,0,0,.1); }
+  .drag-handle { color:#adb5bd; margin-right:8px; }
+  .item-info { flex:1; min-width:0; }
+  .item-name { font-weight:600; font-size:.875rem; }
+  .item-sub  { font-size:.75rem; color:#6c757d; }
+  .sortable-ghost { opacity:.4; background:#cce5ff !important; }
+  .dnd-empty { color:#adb5bd; text-align:center; padding:20px 8px; font-size:.875rem; pointer-events:none; }
+  .zone-label { font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; color:#6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include 'wizard/_progress.html' %}
+<div class="row g-3">
+  <div class="col-lg-8">
+
+    <!-- Pacchetto base opzionale -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-gift me-2 text-info"></i>Pacchetto base (opzionale)</h6>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-2">Seleziona un pacchetto preconfigurato per caricare tour ed esperienze. Potrai personalizzarli nei passi successivi.</p>
+        <form id="frmStep3" method="POST" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div id="hiddenTours"></div>
+          <select name="pacchetto_id" id="selPacchetto" class="form-select">
+            <option value="">— Nessun pacchetto base —</option>
+            {% for p in pacchetti %}
+            <option value="{{ p.id }}" {% if wiz.get('pacchetto_id') == p.id %}selected{% endif %}
+                    data-tours="{{ p.tours | map(attribute='id') | list | tojson }}">
+              {{ p.nome }} ({{ p.tours|length }} tour, {{ p.esperienze|length }} esperienze)
+            </option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+    </div>
+
+    <!-- Drag & Drop Tour -->
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-map me-2 text-success"></i>Tour del viaggio</h6>
+        <span class="badge text-bg-success" id="badge-tours">0 selezionati</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="zone-label">Disponibili</div>
+            <div id="tours-src" class="dnd-zone">
+              {% for t in tours_disp %}
+                {% if t.id not in selected_tours %}
+                <div class="dnd-item" data-id="{{ t.id }}">
+                  <i class="bi bi-grip-vertical drag-handle"></i>
+                  <div class="item-info">
+                    <div class="item-name">{{ t.nome }}</div>
+                    <div class="item-sub">{{ t.destinazione }} · {{ t.durata_giorni }} gg · {{ t.categoria or '' }}</div>
+                  </div>
+                  <span class="badge text-bg-success ms-2">€{{ "%.0f"|format(t.prezzo_adulto) }}</span>
+                </div>
+                {% endif %}
+              {% endfor %}
+              <div class="dnd-empty" id="src-empty" {% if tours_disp|selectattr('id', 'in', selected_tours)|list|length < tours_disp|length %}style="display:none"{% endif %}>Tutti i tour già selezionati</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="zone-label text-success">Nel viaggio</div>
+            <div id="tours-dst" class="dnd-zone selected-zone">
+              {% for t in tours_disp %}
+                {% if t.id in selected_tours %}
+                <div class="dnd-item" data-id="{{ t.id }}">
+                  <i class="bi bi-grip-vertical drag-handle"></i>
+                  <div class="item-info">
+                    <div class="item-name">{{ t.nome }}</div>
+                    <div class="item-sub">{{ t.destinazione }} · {{ t.durata_giorni }} gg</div>
+                  </div>
+                  <span class="badge text-bg-success ms-2">€{{ "%.0f"|format(t.prezzo_adulto) }}</span>
+                </div>
+                {% endif %}
+              {% endfor %}
+              <div class="dnd-empty" id="dst-empty">Trascina qui i tour</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="col-lg-4">
+    <div class="card mb-3 bg-light border-0">
+      <div class="card-body">
+        <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-1"></i>Viaggio in corso</h6>
+        <div class="small text-muted">
+          <div><strong>{{ wiz.nome }}</strong></div>
+          {% if wiz.destinazione %}<div><i class="bi bi-geo-alt me-1"></i>{{ wiz.destinazione }}</div>{% endif %}
+          {% if wiz.data_partenza %}<div><i class="bi bi-calendar me-1"></i>{{ wiz.data_partenza }} → {{ wiz.data_rientro or '?' }}</div>{% endif %}
+          <div><i class="bi bi-people me-1"></i>{{ wiz.get('n_adulti',1) }} adulti, {{ wiz.get('n_bambini',0) }} bambini</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between mt-2">
+  <a href="{{ url_for('wizard.step2') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Indietro
+  </a>
+  <button type="submit" form="frmStep3" class="btn btn-primary">
+    Avanti: Esperienze <i class="bi bi-arrow-right ms-1"></i>
+  </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+const hiddenContainer = document.getElementById('hiddenTours');
+const form = document.getElementById('frmStep3');
+
+function syncHiddens() {
+  const items = document.querySelectorAll('#tours-dst .dnd-item');
+  hiddenContainer.innerHTML = '';
+  items.forEach(item => {
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'tour_ids'; inp.value = item.dataset.id;
+    hiddenContainer.appendChild(inp);
+  });
+  document.getElementById('badge-tours').textContent = items.length + ' selezionati';
+  document.getElementById('dst-empty').style.display = items.length === 0 ? '' : 'none';
+  const srcItems = document.querySelectorAll('#tours-src .dnd-item');
+  document.getElementById('src-empty').style.display = srcItems.length === 0 ? '' : 'none';
+}
+
+Sortable.create(document.getElementById('tours-src'), {
+  group: 'tours', animation: 150, handle: '.drag-handle',
+  ghostClass: 'sortable-ghost', onAdd: syncHiddens, onRemove: syncHiddens,
+});
+Sortable.create(document.getElementById('tours-dst'), {
+  group: 'tours', animation: 150, handle: '.drag-handle',
+  ghostClass: 'sortable-ghost', onAdd: syncHiddens, onRemove: syncHiddens, onSort: syncHiddens,
+});
+
+syncHiddens();
+
+// Pacchetto selezione: sposta automaticamente i tour del pacchetto in dst
+document.getElementById('selPacchetto').addEventListener('change', function () {
+  const opt = this.options[this.selectedIndex];
+  if (!opt.value) return;
+  let pkgTours = [];
+  try { pkgTours = JSON.parse(opt.dataset.tours); } catch(e) {}
+  const src = document.getElementById('tours-src');
+  const dst = document.getElementById('tours-dst');
+  pkgTours.forEach(id => {
+    const item = src.querySelector('[data-id="'+id+'"]');
+    if (item) dst.insertBefore(item, dst.querySelector('.dnd-empty'));
+  });
+  syncHiddens();
+});
+</script>
+{% endblock %}

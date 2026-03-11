@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Esperienze — Roma Lusso Travel{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-3">
+    <div class="col">
+      <h1 class="h3 fw-bold"><i class="bi bi-stars me-2"></i>Esperienze</h1>
+    </div>
+    <div class="col-auto">
+      <a href="{{ url_for('esperienze.nuova') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle-fill me-1"></i>Nuova Esperienza
+      </a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <table id="tabellaEsperienze" class="table table-hover table-striped align-middle w-100">
+        <thead class="table-dark">
+          <tr>
+            <th>#</th>
+            <th>Nome</th>
+            <th>Destinazione</th>
+            <th>Categoria</th>
+            <th>Durata (ore)</th>
+            <th>Prezzo</th>
+            <th>Fornitore</th>
+            <th>Stato</th>
+            <th class="text-center">Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in esperienze %}
+          <tr>
+            <td>{{ e.id }}</td>
+            <td class="fw-semibold">{{ e.nome }}</td>
+            <td>{{ e.destinazione or '—' }}</td>
+            <td>
+              {% if e.categoria %}
+                <span class="badge bg-info text-dark">{{ e.categoria }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>{{ e.durata_ore or '—' }}</td>
+            <td>
+              {% if e.prezzo_adulto %}
+                € {{ '%.2f'|format(e.prezzo_adulto) }}
+              {% else %}—{% endif %}
+            </td>
+            <td>{{ e.fornitore or '—' }}</td>
+            <td>
+              {% if e.attivo %}
+                <span class="badge bg-success">Attiva</span>
+              {% else %}
+                <span class="badge bg-secondary">Inattiva</span>
+              {% endif %}
+            </td>
+            <td class="text-center text-nowrap">
+              <a href="{{ url_for('esperienze.detail', id=e.id) }}" class="btn btn-info btn-sm" title="Dettaglio">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{{ url_for('esperienze.modifica', id=e.id) }}" class="btn btn-warning btn-sm" title="Modifica">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <button type="button" class="btn btn-danger btn-sm"
+                data-bs-toggle="modal" data-bs-target="#modalElimina"
+                data-url="{{ url_for('esperienze.elimina', id=e.id) }}"
+                data-nome="{{ e.nome }}"
+                title="Elimina">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Elimina -->
+<div class="modal fade" id="modalElimina" tabindex="-1" aria-labelledby="modalEliminaLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="modalEliminaLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Conferma Eliminazione</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body">
+        Sei sicuro di voler eliminare l'esperienza <strong id="nomeElimina"></strong>? L'operazione non può essere annullata.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+        <form id="formElimina" method="POST" action="">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Elimina</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script>
+  $(document).ready(function () {
+    $('#tabellaEsperienze').DataTable({
+      language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/it-IT.json' },
+      columnDefs: [{ orderable: false, targets: -1 }],
+      order: [[0, 'desc']]
+    });
+
+    var modalElimina = document.getElementById('modalElimina');
+    modalElimina.addEventListener('show.bs.modal', function (event) {
+      var button = event.relatedTarget;
+      document.getElementById('nomeElimina').textContent = button.getAttribute('data-nome');
+      document.getElementById('formElimina').action = button.getAttribute('data-url');
+    });
+  });
+</script>
+{% endblock %}

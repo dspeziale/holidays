@@ -1,0 +1,719 @@
+{% extends 'base.html' %}
+{% block title %}{{ viaggio.nome }} — Roma Lusso Travel{% endblock %}
+{% block page_title %}Dettaglio Viaggio{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('viaggi.index') }}">Viaggi</a></li>
+<li class="breadcrumb-item active">{{ viaggio.nome }}</li>
+{% endblock %}
+
+{% block content %}
+
+{% set stato_cls = {
+  'bozza': 'secondary',
+  'confermato': 'primary',
+  'pagato': 'success',
+  'completato': 'info',
+  'annullato': 'danger'
+} %}
+{% set sc = stato_cls.get(viaggio.stato, 'secondary') %}
+
+<!-- Header -->
+<div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h2 class="fw-bold mb-1">{{ viaggio.nome }}</h2>
+    <div class="text-muted">
+      {% if viaggio.destinazione %}<i class="bi bi-geo-alt me-1"></i>{{ viaggio.destinazione }}{% endif %}
+      {% if viaggio.data_partenza %}
+        · <i class="bi bi-calendar me-1"></i>{{ viaggio.data_partenza.strftime('%d/%m/%Y') }}
+        → {{ viaggio.data_rientro.strftime('%d/%m/%Y') if viaggio.data_rientro else '?' }}
+        {% if viaggio.durata_giorni() %}({{ viaggio.durata_giorni() }} giorni){% endif %}
+      {% endif %}
+    </div>
+  </div>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    <span class="badge text-bg-{{ sc }} fs-6 px-3 py-2">{{ viaggio.stato_label() }}</span>
+    <a href="{{ url_for('viaggi.esporta_pdf', id=viaggio.id) }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Scarica PDF
+    </a>
+    <a href="{{ url_for('wizard.step1') }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-plus-circle me-1"></i>Nuovo Viaggio
+    </a>
+    <button type="button" class="btn btn-outline-danger btn-sm"
+      data-bs-toggle="modal" data-bs-target="#modalElimina">
+      <i class="bi bi-trash me-1"></i>Elimina
+    </button>
+  </div>
+</div>
+
+<div class="row g-3">
+
+  <!-- Colonna principale -->
+  <div class="col-lg-8">
+
+    <!-- Cliente Capogruppo -->
+    <div class="card mb-3 border-start border-4 border-primary shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="text-muted small text-uppercase fw-semibold mb-1">Capogruppo</div>
+            <div class="fs-5 fw-bold">{{ viaggio.cliente.nome }} {{ viaggio.cliente.cognome }}</div>
+            <div class="text-muted small">
+              <i class="bi bi-envelope me-1"></i>{{ viaggio.cliente.email }}
+              {% if viaggio.cliente.telefono %}
+                · <i class="bi bi-telephone me-1"></i>{{ viaggio.cliente.telefono }}
+              {% endif %}
+            </div>
+          </div>
+          <a href="{{ url_for('clienti.detail', id=viaggio.cliente_id) }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-person me-1"></i>Scheda
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Altri Partecipanti -->
+    <div class="card mb-3 shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-center bg-transparent">
+        <h6 class="card-title mb-0"><i class="bi bi-people me-2"></i>Altri Partecipanti</h6>
+        {% if viaggio.stato == 'bozza' %}
+        <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalAggiungiPartecipante">
+          <i class="bi bi-plus-lg me-1"></i>Aggiungi
+        </button>
+        {% endif %}
+      </div>
+      <div class="card-body p-0">
+        {% if viaggio.partecipanti %}
+        <div class="list-group list-group-flush">
+          {% for p in viaggio.partecipanti %}
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+            <div>
+              <span class="fw-semibold">{{ p.nome }} {{ p.cognome }}</span>
+              <small class="text-muted ms-2">{{ p.email }}</small>
+            </div>
+            <div class="d-flex gap-2">
+              <a href="{{ url_for('clienti.detail', id=p.id) }}" class="btn btn-xs btn-link p-0" title="Scheda">
+                <i class="bi bi-person"></i>
+              </a>
+              {% if viaggio.stato == 'bozza' %}
+              <form method="POST" action="{{ url_for('viaggi.rimuovi_partecipante', id=viaggio.id, cliente_id=p.id) }}" 
+                    onsubmit="return confirm('Rimuovere {{ p.nome }} dai partecipanti?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-xs btn-link text-danger p-0" title="Rimuovi">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-3 text-center text-muted small">
+          Nessun altro partecipante registrato.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Dati viaggio -->
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-suitcase me-2 text-primary"></i>Dettagli viaggio</h6>
+        {% if viaggio.stato == 'bozza' %}
+        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalModificaInfo">
+          <i class="bi bi-pencil me-1"></i>Modifica
+        </button>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <div class="row g-3 small">
+          <div class="col-sm-6">
+            <div class="text-muted">Partecipanti</div>
+            <div class="fw-semibold">
+              {{ viaggio.n_adulti }} adulti{% if viaggio.n_bambini %}, {{ viaggio.n_bambini }} bambini{% endif %}
+            </div>
+          </div>
+          {% if viaggio.budget %}
+          <div class="col-sm-6">
+            <div class="text-muted">Budget cliente</div>
+            <div class="fw-semibold">{{ viaggio.budget | formato_valuta(viaggio.cliente.paese) }}</div>
+          </div>
+          {% endif %}
+          {% if viaggio.pacchetto %}
+          <div class="col-sm-6">
+            <div class="text-muted">Pacchetto base</div>
+            <div class="fw-semibold">
+              <a href="{{ url_for('pacchetti.detail', id=viaggio.pacchetto_id) }}" class="text-decoration-none">
+                {{ viaggio.pacchetto.nome }}
+              </a>
+            </div>
+          </div>
+          {% endif %}
+          <div class="col-sm-6">
+            <div class="text-muted">Servizi inclusi</div>
+            <div class="d-flex gap-2 flex-wrap mt-1">
+              {% if viaggio.include_volo %}
+                <span class="badge text-bg-light border"><i class="bi bi-airplane me-1"></i>Volo</span>
+              {% endif %}
+              {% if viaggio.include_hotel %}
+                <span class="badge text-bg-light border"><i class="bi bi-building me-1"></i>Hotel</span>
+              {% endif %}
+              {% if viaggio.include_auto %}
+                <span class="badge text-bg-light border"><i class="bi bi-car-front me-1"></i>Auto</span>
+              {% endif %}
+              {% if viaggio.include_treno %}
+                <span class="badge text-bg-light border"><i class="bi bi-train-front me-1"></i>Treno</span>
+              {% endif %}
+              {% if not viaggio.include_volo and not viaggio.include_hotel and not viaggio.include_auto and not viaggio.include_treno %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </div>
+          </div>
+          {% if viaggio.note_cliente %}
+          <div class="col-12">
+            <div class="text-muted">Note del cliente</div>
+            <div class="fst-italic">{{ viaggio.note_cliente }}</div>
+          </div>
+          {% endif %}
+
+          <!-- Voli -->
+          {% if viaggio.volo_json %}
+          {% set data = viaggio.volo_json | from_json %}
+          {% set voli = data if data is iterable and data is not mapping else [data] %}
+          {% for volo in voli %}
+          <div class="col-12 mb-3">
+            <div class="text-muted mb-1">Volo collegato #{{ loop.index }}</div>
+            <div class="alert alert-light border d-flex align-items-center gap-3 mb-0 py-2">
+              <i class="bi bi-airplane text-primary fs-5"></i>
+              <div class="flex-grow-1">
+                <span class="fw-bold">{{ volo.get('da','?') }} → {{ volo.get('a','?') }}</span>
+                <div class="text-muted small">
+                  {{ volo.get('vettore','') }} · {{ volo.get('data','') }} · {{ volo.get('orario','') }}
+                </div>
+              </div>
+              <div class="text-end">
+                <span class="badge text-bg-success fs-6">{{ volo.get('prezzo','') }}</span>
+              </div>
+              
+              {% if viaggio.stato == 'bozza' %}
+              <div class="d-flex gap-2 ms-2">
+                <a href="{{ url_for('amadeus.voli') }}" class="btn btn-sm btn-outline-secondary" title="Aggiungi/Cambia">
+                  <i class="bi bi-plus-lg"></i>
+                </a>
+                <form method="POST" action="{{ url_for('viaggi.rimuovi_volo', id=viaggio.id, item_id=volo.get('item_id', 'legacy')) }}" onsubmit="return confirm('Rimuovere questo volo?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Rimuovi">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+
+          <!-- PNR Volo (globale per ora) -->
+          <div class="col-12 mb-3">
+            <div class="mt-2 d-flex align-items-center gap-2">
+              {% if viaggio.stato == 'bozza' %}
+              <form method="POST" action="{{ url_for('viaggi.aggiorna_pnr', id=viaggio.id) }}" class="d-flex align-items-center gap-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="input-group input-group-sm" style="max-width: 250px;">
+                  <span class="input-group-text"><i class="bi bi-ticket-perforated"></i></span>
+                  <input type="text" name="pnr_volo" class="form-control" placeholder="Codice prenotazione (PNR)" value="{{ viaggio.pnr_volo or '' }}">
+                  <button class="btn btn-outline-primary" type="submit">Salva</button>
+                </div>
+              </form>
+              {% endif %}
+              {% if viaggio.pnr_volo %}
+                <span class="badge text-bg-warning"><i class="bi bi-check2-circle me-1"></i>PNR: {{ viaggio.pnr_volo }}</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if viaggio.hotel_json %}
+          {% set hotel = viaggio.hotel_json | from_json %}
+          <div class="col-12">
+            <div class="text-muted mb-1">Hotel collegato</div>
+            <div class="alert alert-light border d-flex align-items-center gap-3 mb-0 py-2">
+              <i class="bi bi-building text-primary fs-5"></i>
+              <div>
+                <span class="fw-bold">{{ hotel.get('nome', '—') }}</span>
+                {% if hotel.get('categoria') %}
+                   <span class="badge text-bg-secondary ms-2">{{ hotel.get('categoria') }}</span>
+                {% endif %}
+                <div class="text-muted small">
+                  {{ hotel.get('indirizzo', '') }}
+                  {% if hotel.get('citta') %} · {{ hotel.get('citta') }}{% endif %}
+                </div>
+              </div>
+              <div class="ms-auto text-end">
+                <div class="badge text-bg-success fs-6">{{ hotel.get('prezzo', '') }}</div>
+                <div class="text-muted small mt-1">{% if hotel.get('check_in') %}{{ hotel.get('check_in') }} → {{ hotel.get('check_out') }}{% endif %}</div>
+              </div>
+              {% if viaggio.stato == 'bozza' %}
+              <a href="{{ url_for('amadeus.hotels') }}" class="btn btn-sm btn-outline-secondary ms-2" title="Cambia hotel">
+                <i class="bi bi-arrow-repeat"></i>
+              </a>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if viaggio.auto_json %}
+          {% set auto = viaggio.auto_json | from_json %}
+          <div class="col-12">
+            <div class="text-muted mb-1">Auto collegata</div>
+            <div class="alert alert-light border d-flex align-items-center gap-3 mb-0 py-2">
+              <i class="bi bi-car-front text-primary fs-5"></i>
+              <div>
+                <span class="fw-bold">{{ auto.get('descrizione', '—') }}</span>
+                {% if auto.get('categoria') %}
+                   <span class="badge text-bg-secondary ms-2">{{ auto.get('categoria') }}</span>
+                {% endif %}
+                <div class="text-muted small">
+                  {% if auto.get('posti') %}<i class="bi bi-people me-1"></i>{{ auto.get('posti') }} posti{% endif %}
+                  {% if auto.get('fornitore') %} · {{ auto.get('fornitore') }}{% endif %}
+                </div>
+              </div>
+              <div class="ms-auto">
+                <span class="badge text-bg-success fs-6">{{ auto.get('prezzo', '') }}</span>
+              </div>
+              {% if viaggio.stato == 'bozza' %}
+              <a href="{{ url_for('amadeus.auto') }}" class="btn btn-sm btn-outline-secondary ms-2" title="Cambia auto">
+                <i class="bi bi-arrow-repeat"></i>
+              </a>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if viaggio.transfer_json %}
+          {% set data = viaggio.transfer_json | from_json %}
+          {% set transfers = data if data is iterable and data is not mapping else [data] %}
+          {% for tr in transfers %}
+          <div class="col-12 mb-3">
+            <div class="text-muted mb-1">Transfer collegato #{{ loop.index }}</div>
+            <div class="alert alert-light border d-flex align-items-center gap-3 mb-0 py-2">
+              <i class="bi bi-car-front text-primary fs-5"></i>
+              <div class="flex-grow-1">
+                <span class="fw-bold">{{ tr.get('origine', '?') }} → {{ tr.get('destinazione', '?') }}</span>
+                <div class="text-muted small">
+                  {{ tr.get('tipo', 'transfer') }} · {{ tr.get('data', '') }} · {{ tr.get('orario', '') }} · {{ tr.get('veicolo', '') }}
+                </div>
+              </div>
+              <div class="text-end">
+                <span class="badge text-bg-success fs-6">{{ tr.get('prezzo', '') }}</span>
+              </div>
+
+              {% if viaggio.stato == 'bozza' %}
+              <div class="d-flex gap-2 ms-2">
+                <a href="{{ url_for('transfer.index') }}" class="btn btn-sm btn-outline-secondary" title="Aggiungi/Cambia">
+                  <i class="bi bi-plus-lg"></i>
+                </a>
+                <form method="POST" action="{{ url_for('viaggi.rimuovi_transfer', id=viaggio.id, item_id=tr.get('item_id', 'legacy')) }}" onsubmit="return confirm('Rimuovere questo transfer?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Rimuovi">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Tour -->
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-map me-2 text-success"></i>Tour ({{ viaggio.tours|length }})</h6>
+        {% if viaggio.stato == 'bozza' %}
+        <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalAggiungiTour">
+          <i class="bi bi-plus-lg me-1"></i>Aggiungi
+        </button>
+        {% endif %}
+      </div>
+      {% if viaggio.tours %}
+      <div class="list-group list-group-flush">
+        {% for t in viaggio.tours %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold">
+              <a href="{{ url_for('tours.detail', id=t.id) }}" class="text-decoration-none">
+                {{ t.nome }}
+              </a>
+            </div>
+            <small class="text-muted">
+              {{ t.destinazione }}{% if t.durata_giorni %} · {{ t.durata_giorni }} giorni{% endif %}
+              {% if t.categoria %} · {{ t.categoria }}{% endif %}
+            </small>
+          </div>
+          <div class="text-end text-nowrap d-flex align-items-center gap-3">
+            <div>
+              <span class="badge text-bg-success">{{ t.prezzo_adulto | formato_valuta(viaggio.cliente.paese) }}/ad</span>
+              {% if t.prezzo_bambino %}
+                <span class="badge text-bg-light border ms-1">{{ t.prezzo_bambino | formato_valuta(viaggio.cliente.paese) }}/b</span>
+              {% endif %}
+            </div>
+            {% if viaggio.stato == 'bozza' %}
+            <form method="POST" action="{{ url_for('viaggi.rimuovi_tour', id=viaggio.id, tour_id=t.id) }}"
+                  onsubmit="return confirm('Rimuovere questo tour?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Rimuovi tour">
+                <i class="bi bi-trash fs-5"></i>
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-body text-muted small">Nessun tour selezionato</div>
+      {% endif %}
+    </div>
+
+    <!-- Esperienze -->
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-stars me-2 text-info"></i>Esperienze ({{ viaggio.esperienze|length }})</h6>
+        {% if viaggio.stato == 'bozza' %}
+        <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#modalAggiungiEsperienza">
+          <i class="bi bi-plus-lg me-1"></i>Aggiungi
+        </button>
+        {% endif %}
+      </div>
+      {% if viaggio.esperienze %}
+      <div class="list-group list-group-flush">
+        {% for e in viaggio.esperienze %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold">
+              <a href="{{ url_for('esperienze.detail', id=e.id) }}" class="text-decoration-none text-info">
+                {{ e.nome }}
+              </a>
+            </div>
+            <small class="text-muted">
+              {{ e.destinazione }}{% if e.durata_ore %} · {{ e.durata_ore }}h{% endif %}
+              {% if e.categoria %} · {{ e.categoria }}{% endif %}
+              {% if e.fornitore %} · {{ e.fornitore }}{% endif %}
+            </small>
+          </div>
+          <div class="text-end text-nowrap d-flex align-items-center gap-3">
+            <span class="badge text-bg-info">{{ e.prezzo_adulto | formato_valuta(viaggio.cliente.paese) }}/ad</span>
+            {% if viaggio.stato == 'bozza' %}
+            <form method="POST" action="{{ url_for('viaggi.rimuovi_esperienza', id=viaggio.id, esp_id=e.id) }}"
+                  onsubmit="return confirm('Rimuovere questa esperienza?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Rimuovi esperienza">
+                <i class="bi bi-trash fs-5"></i>
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-body text-muted small">Nessuna esperienza selezionata</div>
+      {% endif %}
+    </div>
+
+    <!-- Note interne -->
+    {% if viaggio.note_interne %}
+    <div class="card mb-3 border-warning">
+      <div class="card-header bg-warning bg-opacity-10">
+        <h6 class="card-title mb-0"><i class="bi bi-lock me-2"></i>Note interne</h6>
+      </div>
+      <div class="card-body">
+        <p class="mb-0">{{ viaggio.note_interne }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Sidebar -->
+  <div class="col-lg-4">
+
+    <!-- Totale -->
+    <div class="card mb-3 shadow-sm">
+      <div class="card-header bg-primary text-white">
+        <h6 class="card-title mb-0"><i class="bi bi-receipt me-2"></i>Totale</h6>
+      </div>
+      <div class="card-body text-center">
+        <div class="display-6 fw-bold text-primary">
+          {% if viaggio.prezzo_totale %}
+            {{ viaggio.prezzo_totale | formato_valuta(viaggio.cliente.paese) }}
+          {% else %}—{% endif %}
+        </div>
+        <div class="text-muted small mt-1">
+          {{ viaggio.n_adulti }} adulti{% if viaggio.n_bambini %}, {{ viaggio.n_bambini }} bambini{% endif %}
+        </div>
+        {% if viaggio.budget and viaggio.prezzo_totale %}
+          {% set diff = (viaggio.prezzo_totale|float - viaggio.budget|float) %}
+          <hr>
+          <div class="small">
+            Budget: <strong>{{ viaggio.budget | formato_valuta(viaggio.cliente.paese) }}</strong>
+           {% if diff > 0 %}
+              <div class="text-danger mt-1"><i class="bi bi-exclamation-triangle me-1"></i>+€{{ '%.0f'|format(diff) }} oltre budget</div>
+            {% elif diff < 0 %}
+              <div class="text-success mt-1"><i class="bi bi-check-circle me-1"></i>€{{ '%.0f'|format(diff|abs) }} sotto budget</div>
+            {% else %}
+              <div class="text-muted mt-1">In budget</div>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Cambia stato -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-arrow-repeat me-2"></i>Cambia stato</h6>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('viaggi.cambia_stato', id=viaggio.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <select name="stato" class="form-select form-select-sm">
+              {% for val, label in [('bozza','Bozza'),('confermato','Confermato'),('pagato','Pagato'),('completato','Completato'),('annullato','Annullato')] %}
+              <option value="{{ val }}" {% if viaggio.stato == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="bi bi-check me-1"></i>Aggiorna stato
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Fatturazione -->
+    {% if viaggio.stato in ['pagato', 'completato'] %}
+    <div class="card mb-3 border-success shadow-sm">
+      <div class="card-header bg-success text-white">
+        <h6 class="card-title mb-0"><i class="bi bi-file-earmark-text me-2"></i>Fatturazione</h6>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          {% if not viaggio.ricevuta_emessa %}
+            <a href="{{ url_for('viaggi.emetti_ricevuta', id=viaggio.id) }}" class="btn btn-success btn-sm">
+              <i class="bi bi-receipt me-1"></i>Emetti Ricevuta
+            </a>
+          {% else %}
+            <a href="{{ url_for('viaggi.emetti_ricevuta', id=viaggio.id) }}" class="btn btn-outline-success btn-sm">
+              <i class="bi bi-download me-1"></i>Scarica Ricevuta
+            </a>
+            <div class="text-muted small mb-2">Emessa il {{ viaggio.data_ricevuta.strftime('%d/%m/%Y') }}</div>
+            
+            {% if not viaggio.fattura_emessa %}
+              <a href="{{ url_for('viaggi.emetti_fattura', id=viaggio.id) }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i>Emetti Fattura
+              </a>
+            {% else %}
+              <a href="{{ url_for('viaggi.emetti_fattura', id=viaggio.id) }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-download me-1"></i>Scarica Fattura
+              </a>
+              <div class="text-muted small">Emessa il {{ viaggio.data_fattura.strftime('%d/%m/%Y') }}</div>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Metadati -->
+    <div class="card mb-3 bg-light border-0">
+      <div class="card-body small text-muted">
+        <div><i class="bi bi-calendar-plus me-1"></i>Creato: {{ viaggio.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+        <div class="mt-1"><i class="bi bi-calendar-check me-1"></i>Aggiornato: {{ viaggio.updated_at.strftime('%d/%m/%Y %H:%M') }}</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Elimina -->
+<div class="modal fade" id="modalElimina" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Conferma Eliminazione</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        Sei sicuro di voler eliminare il viaggio <strong>{{ viaggio.nome }}</strong>?
+        L'operazione non può essere annullata.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+        <form method="POST" action="{{ url_for('viaggi.elimina', id=viaggio.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Elimina</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Aggiungi Partecipante -->
+<div class="modal fade" id="modalAggiungiPartecipante" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Aggiungi Partecipante</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('viaggi.aggiungi_partecipante', id=viaggio.id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Seleziona Cliente</label>
+            <select name="cliente_id" class="form-select select2" required style="width: 100%;">
+              <option value="">Cerca cliente...</option>
+              {% for c in tutti_clienti %}
+                {% if c.id != viaggio.cliente_id and c not in viaggio.partecipanti %}
+                  <option value="{{ c.id }}">{{ c.cognome }} {{ c.nome }} ({{ c.email }})</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary">Aggiungi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Modifica Info -->
+<div class="modal fade" id="modalModificaInfo" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Modifica Informazioni Viaggio</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('viaggi.modifica_info', id=viaggio.id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-12">
+              <label class="form-label">Nome Viaggio</label>
+              <input type="text" name="nome" class="form-control" value="{{ viaggio.nome }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Destinazione</label>
+              <input type="text" name="destinazione" class="form-control" value="{{ viaggio.destinazione or '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Data Partenza</label>
+              <input type="date" name="data_partenza" class="form-control" value="{{ viaggio.data_partenza.strftime('%Y-%m-%d') if viaggio.data_partenza else '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Data Rientro</label>
+              <input type="date" name="data_rientro" class="form-control" value="{{ viaggio.data_rientro.strftime('%Y-%m-%d') if viaggio.data_rientro else '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Adulti</label>
+              <input type="number" name="n_adulti" class="form-control" value="{{ viaggio.n_adulti }}" min="1">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Bambini</label>
+              <input type="number" name="n_bambini" class="form-control" value="{{ viaggio.n_bambini }}" min="0">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Budget Cliente (€)</label>
+              <input type="number" name="budget" step="0.01" class="form-control" value="{{ viaggio.budget or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Note Cliente</label>
+              <textarea name="note_cliente" class="form-control" rows="3">{{ viaggio.note_cliente or '' }}</textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Aggiungi Tour -->
+<div class="modal fade" id="modalAggiungiTour" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Aggiungi Tour</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('viaggi.aggiungi_tour', id=viaggio.id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Seleziona Tour</label>
+            <select name="tour_id" class="form-select select2" required style="width: 100%;">
+              <option value="">Seleziona...</option>
+              {% for t in tutti_tours %}
+                {% if t not in viaggio.tours %}
+                  <option value="{{ t.id }}">{{ t.nome }} (€{{ t.prezzo_adulto }})</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary">Aggiungi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Aggiungi Esperienza -->
+<div class="modal fade" id="modalAggiungiEsperienza" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Aggiungi Esperienza</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('viaggi.aggiungi_esperienza', id=viaggio.id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Seleziona Esperienza</label>
+            <select name="esp_id" class="form-select select2" required style="width: 100%;">
+              <option value="">Seleziona...</option>
+              {% for e in tutte_esperienze %}
+                {% if e not in viaggio.esperienze %}
+                  <option value="{{ e.id }}">{{ e.nome }} (€{{ e.prezzo_adulto }})</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary">Aggiungi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

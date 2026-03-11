@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}Fornitori — Roma Lusso Travel{% endblock %}
+{% block page_title %}Anagrafica Fornitori{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Fornitori</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0">Elenco Fornitori</h2>
+    {% if current_user.is_manager_or_admin() %}
+    <a href="{{ url_for('fornitori.nuovo') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-2"></i>Nuovo Fornitore
+    </a>
+    {% endif %}
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">Nome</th>
+                        <th>Tipo Servizio</th>
+                        <th>Contatto</th>
+                        <th>Email / Telefono</th>
+                        <th>Stato</th>
+                        <th class="text-end pe-4">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in fornitori %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold">{{ f.nome }}</div>
+                            <div class="text-muted small">{{ f.indirizzo or '' }}</div>
+                        </td>
+                        <td>
+                            <span class="badge text-bg-secondary">{{ f.tipo_servizio }}</span>
+                        </td>
+                        <td>{{ f.contatto_nome or '-' }}</td>
+                        <td>
+                            <div class="small">{{ f.email or '-' }}</div>
+                            <div class="small text-muted">{{ f.telefono or '' }}</div>
+                        </td>
+                        <td>
+                            {% if f.attivo %}
+                            <span class="badge text-bg-success">Attivo</span>
+                            {% else %}
+                            <span class="badge text-bg-danger">Inattivo</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('fornitori.modifica', id=f.id) }}" class="btn btn-outline-primary" title="Modifica">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if current_user.is_manager_or_admin() %}
+                                <button type="button" class="btn btn-outline-danger" 
+                                        data-bs-toggle="modal" data-bs-target="#modalElimina{{ f.id }}" title="Elimina">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+
+                            <!-- Modal Elimina -->
+                            <div class="modal fade" id="modalElimina{{ f.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content text-start">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Conferma Eliminazione</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            Sei sicuro di voler eliminare il fornitore <strong>{{ f.nome }}</strong>?
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                                            <form action="{{ url_for('fornitori.elimina', id=f.id) }}" method="POST" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-danger">Elimina</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-buildings fs-1 d-block mb-3"></i>
+                            Nessun fornitore trovato.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.venv
+venv/
+ENV/
+.env
+instance/
+*.db
+*.sqlite3
+.claude/
+node_modules/
+dist/
+build/
+.DS_Store
+*.ttf
+Broadway

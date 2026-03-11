@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        body {
+            font-family: 'Georgia', 'Times New Roman', Times, serif;
+            font-size: 10pt;
+            line-height: 1.5;
+            color: #1A1A1A;
+            margin: 0;
+            padding: 0;
+        }
+        .accent-bar {
+            background-color: #003366;
+            height: 10px;
+            width: 100%;
+        }
+        .container {
+            padding: 2cm;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 1px solid #C5A028;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            color: #003366;
+            margin: 0;
+            font-size: 28pt;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+        .header p {
+            margin: 10px 0 0;
+            color: #C5A028;
+            font-size: 11pt;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section-title {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            color: #003366;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #EEE;
+            padding-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px 8px;
+            border-bottom: 1px solid #F5F5F5;
+        }
+        th {
+            font-family: Arial, sans-serif;
+            font-size: 8pt;
+            text-transform: uppercase;
+            color: #888;
+            background-color: #F9F9F9;
+        }
+        .total-row {
+            margin-top: 30px;
+            text-align: right;
+            border-top: 2px solid #003366;
+            padding-top: 20px;
+        }
+        .total-label {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            color: #888;
+            text-transform: uppercase;
+        }
+        .total-amount {
+            font-size: 20pt;
+            color: #003366;
+            font-weight: bold;
+        }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            font-size: 7pt;
+            color: #AAA;
+            padding: 1cm 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="accent-bar"></div>
+    <div class="container">
+        <div class="header">
+            <p>Itinerario di Viaggio Personalizzato</p>
+            <h1>{{ viaggio.nome }}</h1>
+            <div style="font-family: Arial, sans-serif; font-size: 9pt; color: #666; margin-top: 10px;">
+                {{ viaggio.destinazione }} | {{ viaggio.data_inizio.strftime('%d/%m/%Y') if viaggio.data_inizio else 'TBD' }} — {{ viaggio.data_fine.strftime('%d/%m/%Y') if viaggio.data_fine else 'TBD' }}
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Dettagli Generale</div>
+            <table style="border: none;">
+                <tr style="border: none;">
+                    <td style="border: none; width: 33%;">
+                        <div style="font-family: Arial, sans-serif; font-size: 7pt; color: #C5A028; text-transform: uppercase;">Capogruppo</div>
+                        <div style="font-size: 11pt;">{{ viaggio.cliente.nome_completo() }}</div>
+                    </td>
+                    <td style="border: none; width: 33%;">
+                        <div style="font-family: Arial, sans-serif; font-size: 7pt; color: #C5A028; text-transform: uppercase;">Ospiti</div>
+                        <div style="font-size: 11pt;">{{ viaggio.n_adulti }} Adulti, {{ viaggio.n_bambini }} Bambini</div>
+                    </td>
+                    <td style="border: none; width: 33%;">
+                        <div style="font-family: Arial, sans-serif; font-size: 7pt; color: #C5A028; text-transform: uppercase;">Stato Pratica</div>
+                        <div style="font-size: 11pt; text-transform: capitalize;">{{ viaggio.stato }}</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        {% if viaggio.tours %}
+        <div class="section">
+            <div class="section-title">Esperienze Multigiorno e Tour</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="60%">Descrizione</th>
+                        <th>Città</th>
+                        <th style="text-align: right;">Valore</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tour in viaggio.tours %}
+                    <tr>
+                        <td><strong>{{ tour.nome }}</strong><br><small style="color: #888;">{{ tour.durata_giorni }} Giorni</small></td>
+                        <td>{{ tour.destinazione }}</td>
+                        <td style="text-align: right;">{{ tour.prezzo_adulto | formato_valuta(viaggio.cliente.paese) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        {% if viaggio.esperienze %}
+        <div class="section">
+            <div class="section-title">Esperienze Giornaliere ed Escursioni</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="60%">Esperienza</th>
+                        <th>Destinazione</th>
+                        <th style="text-align: right;">Valore</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exp in viaggio.esperienze %}
+                    <tr>
+                        <td><strong>{{ exp.nome }}</strong><br><small style="color: #888;">{{ exp.durata_ore }} Ore</small></td>
+                        <td>{{ exp.destinazione }}</td>
+                        <td style="text-align: right;">{{ exp.prezzo_adulto | formato_valuta(viaggio.cliente.paese) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <div class="total-row">
+            <div class="total-label">Previsione Totale Investimento</div>
+            <div class="total-amount">{{ viaggio.prezzo_totale | formato_valuta(viaggio.cliente.paese) }}</div>
+        </div>
+
+        <div style="margin-top: 50px; font-size: 9pt; color: #888; font-style: italic; text-align: center;">
+            "Il viaggio è l'unica cosa che compri che ti rende più ricco."
+        </div>
+    </div>
+
+    <div class="footer">
+        Roma Lusso Travel · Proposta Creata il {{ now }} · Documento ad Uso Informativo
+    </div>
+</body>
+</html>

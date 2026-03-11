@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+
+{% block title %}Cerca Hotel — Amadeus{% endblock %}
+
+{% block page_title %}Cerca Hotel{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+<li class="breadcrumb-item active">Cerca Hotel</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+
+    <!-- Search card -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h3 class="card-title mb-0">
+          <i class="bi bi-building me-2 text-primary"></i>Ricerca Hotel via Amadeus API
+        </h3>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('amadeus.hotels') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="row g-3">
+            <!-- Codice IATA Città -->
+            <div class="col-12 col-md-4">
+              <label for="city_code" class="form-label fw-semibold">
+                Codice IATA Città <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                <input type="text" class="form-control text-uppercase" id="city_code"
+                       name="city_code" required maxlength="3"
+                       placeholder="es. ROM, FCO, MIL"
+                       value="{{ request.form.get('city_code', '') }}">
+              </div>
+              <div class="form-text">Codice IATA della città (3 lettere).</div>
+            </div>
+
+            <!-- Check-in -->
+            <div class="col-6 col-md-2">
+              <label for="check_in" class="form-label fw-semibold">
+                Check-in <span class="text-danger">*</span>
+              </label>
+              <input type="date" class="form-control" id="check_in" name="check_in"
+                     required min="{{ today }}"
+                     value="{{ request.form.get('check_in', '') }}">
+            </div>
+
+            <!-- Check-out -->
+            <div class="col-6 col-md-2">
+              <label for="check_out" class="form-label fw-semibold">
+                Check-out <span class="text-danger">*</span>
+              </label>
+              <input type="date" class="form-control" id="check_out" name="check_out"
+                     required min="{{ today }}"
+                     value="{{ request.form.get('check_out', '') }}">
+            </div>
+
+            <!-- Adulti -->
+            <div class="col-6 col-md-2">
+              <label for="adults" class="form-label fw-semibold">Adulti</label>
+              <input type="number" class="form-control" id="adults" name="adults"
+                     min="1" max="9" value="{{ request.form.get('adults', 1) }}">
+            </div>
+
+            <!-- Camere -->
+            <div class="col-6 col-md-2">
+              <label for="rooms" class="form-label fw-semibold">Camere</label>
+              <input type="number" class="form-control" id="rooms" name="rooms"
+                     min="1" max="5" value="{{ request.form.get('rooms', 1) }}">
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-search me-1"></i>Cerca Hotel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Demo banner -->
+    {% if risultati and risultati | length > 0 and risultati[0].get('_demo') %}
+    <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
+      <i class="bi bi-info-circle-fill flex-shrink-0"></i>
+      <span>Modalità demo — API Amadeus non configurata. Risultati di esempio.</span>
+    </div>
+    {% endif %}
+
+    <!-- Results -->
+    {% if error %}
+    <div class="alert alert-danger d-flex align-items-center gap-2">
+      <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+      <span>{{ error }}</span>
+    </div>
+    {% elif risultati is not none %}
+      {% if risultati | length == 0 %}
+      <div class="alert alert-info d-flex align-items-center gap-2">
+        <i class="bi bi-info-circle-fill flex-shrink-0"></i>
+        <span>Nessun hotel trovato per i criteri di ricerca inseriti.</span>
+      </div>
+      {% else %}
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="mb-0">
+          <i class="bi bi-building me-2"></i>
+          {{ risultati | length }} hotel trovati
+        </h5>
+      </div>
+      <div class="row g-3">
+        {% for r in risultati %}
+        {% set h = r.get('hotel', {}) %}
+        {% set offerte = r.get('offers', []) %}
+        {% set addr = h.get('address', {}) %}
+        {% set città = addr.get('cityName', '') or h.get('cityCode', '') %}
+        {% set stelle = h.get('rating', '') %}
+        {% set offerta = offerte[0] if offerte else {} %}
+        {% set room = offerta.get('room', {}) %}
+        {% set tipo_camera = room.get('typeEstimated', {}).get('category', 'Camera standard') or 'Camera standard' %}
+        {% set prezzo = offerta.get('price', {}) %}
+
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="card h-100 shadow-sm">
+            <div class="card-body">
+              <h5 class="card-title d-flex align-items-start gap-2 mb-1">
+                <i class="bi bi-building-fill text-primary flex-shrink-0 mt-1"></i>
+                <span>{{ h.get('name', 'N/D') }}</span>
+              </h5>
+              {% if città %}
+              <p class="text-muted small mb-2">
+                <i class="bi bi-geo-alt me-1"></i>{{ città }}
+              </p>
+              {% endif %}
+
+              {% if stelle %}
+              <p class="mb-2">
+                {% for i in range(stelle | int) %}<span class="text-warning">★</span>{% endfor %}
+                <span class="text-muted small ms-1">({{ stelle }} stelle)</span>
+              </p>
+              {% endif %}
+
+              {% if offerta %}
+              <hr class="my-2">
+              <div class="d-flex align-items-center justify-content-between">
+                <span class="text-muted small">
+                  <i class="bi bi-door-open me-1"></i>{{ tipo_camera | title }}
+                </span>
+                <div class="text-end">
+                  <span class="fs-5 fw-bold text-success">{{ prezzo.get('total', '—') }}</span>
+                  <span class="text-muted small ms-1">{{ prezzo.get('currency', 'EUR') }}</span>
+                </div>
+              </div>
+              {% else %}
+              <p class="text-muted small fst-italic mb-0 mt-2">Nessuna offerta disponibile.</p>
+              {% endif %}
+            </div>
+            {% if viaggi %}
+            <div class="card-footer bg-transparent pt-2">
+              <button type="button" class="btn btn-sm btn-outline-primary collega-hotel-btn"
+                      data-bs-toggle="modal" data-bs-target="#collegaHotelModal"
+                      data-nome="{{ h.get('name', '') }}"
+                      data-citta="{{ città }}"
+                      data-stelle="{{ stelle }}"
+                      data-camera="{{ tipo_camera | title }}"
+                      data-prezzo="{{ prezzo.get('total', '') }} {{ prezzo.get('currency', 'EUR') }}">
+                <i class="bi bi-link-45deg me-1"></i>Collega a Viaggio
+              </button>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endif %}
+
+  </div>
+</div>
+<!-- Modal: Collega Hotel a Viaggio -->
+{% if viaggi %}
+<div class="modal fade" id="collegaHotelModal" tabindex="-1" aria-labelledby="collegaHotelModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="collegaHotelModalLabel">
+          <i class="bi bi-link-45deg me-2"></i>Collega Hotel a Viaggio
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('amadeus.collega_hotel') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="hotel_json" id="modal_hotel_json">
+        <div class="modal-body">
+          <!-- Riepilogo hotel -->
+          <div class="alert alert-light border mb-3 py-2">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-building-fill text-primary fs-4"></i>
+              <div>
+                <div class="fw-bold" id="m_hotel_nome">—</div>
+                <div class="text-muted small">
+                  <span id="m_hotel_citta"></span>
+                  <span class="mx-1">·</span>
+                  <span id="m_hotel_stelle"></span> stelle
+                  <span class="mx-1">·</span>
+                  <span id="m_hotel_camera"></span>
+                </div>
+              </div>
+              <div class="ms-auto">
+                <span class="badge text-bg-success fs-6" id="m_hotel_prezzo"></span>
+              </div>
+            </div>
+          </div>
+          <!-- Selezione viaggio -->
+          <label for="hotel_viaggio_id" class="form-label fw-semibold">
+            Seleziona il Viaggio <span class="text-danger">*</span>
+          </label>
+          <select class="form-select" name="viaggio_id" id="hotel_viaggio_id" required>
+            <option value="">— Seleziona un viaggio —</option>
+            {% for v in viaggi %}
+            <option value="{{ v.id }}">
+              {{ v.nome }}
+              {% if v.cliente %} — {{ v.cliente.nome_completo() }}{% endif %}
+              {% if v.data_partenza %} ({{ v.data_partenza.strftime('%d/%m/%Y') }}){% endif %}
+              · {{ v.stato_label() }}
+            </option>
+            {% endfor %}
+          </select>
+          <div class="form-text mt-1">
+            <i class="bi bi-info-circle me-1"></i>Il flag "include hotel" verrà attivato automaticamente.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-link-45deg me-1"></i>Collega
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Sincronizza data minima check-out con check-in
+document.getElementById('check_in').addEventListener('change', function () {
+  var checkOut = document.getElementById('check_out');
+  if (this.value) {
+    checkOut.min = this.value;
+    if (checkOut.value && checkOut.value < this.value) {
+      checkOut.value = this.value;
+    }
+  }
+});
+// Uppercase IATA
+document.getElementById('city_code').addEventListener('input', function () {
+  this.value = this.value.toUpperCase();
+});
+
+// Collega hotel modal
+document.querySelectorAll('.collega-hotel-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var nome    = this.dataset.nome    || '—';
+    var citta   = this.dataset.citta   || '';
+    var stelle  = this.dataset.stelle  || '';
+    var camera  = this.dataset.camera  || '';
+    var prezzo  = this.dataset.prezzo  || '';
+
+    document.getElementById('m_hotel_nome').textContent   = nome;
+    document.getElementById('m_hotel_citta').textContent  = citta;
+    document.getElementById('m_hotel_stelle').textContent = stelle;
+    document.getElementById('m_hotel_camera').textContent = camera;
+    document.getElementById('m_hotel_prezzo').textContent = prezzo;
+
+    var obj = { nome: nome, citta: citta, stelle: stelle, camera: camera, prezzo: prezzo };
+    document.getElementById('modal_hotel_json').value = JSON.stringify(obj);
+    document.getElementById('hotel_viaggio_id').value = '';
+  });
+});
+</script>
+{% endblock %}

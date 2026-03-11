@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ pacchetto.nome }} — Roma Lusso Travel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-3">
+    <div class="col">
+      <h1 class="h3 fw-bold"><i class="bi bi-bag-fill me-2"></i>{{ pacchetto.nome }}</h1>
+    </div>
+    <div class="col-auto d-flex gap-2">
+      <a href="{{ url_for('pacchetti.modifica', id=pacchetto.id) }}" class="btn btn-warning">
+        <i class="bi bi-pencil me-1"></i>Modifica
+      </a>
+      <button type="button" class="btn btn-danger"
+        data-bs-toggle="modal" data-bs-target="#modalElimina"
+        data-url="{{ url_for('pacchetti.elimina', id=pacchetto.id) }}"
+        data-nome="{{ pacchetto.nome }}">
+        <i class="bi bi-trash me-1"></i>Elimina
+      </button>
+      <a href="{{ url_for('pacchetti.index') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Torna alla lista
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Info principali -->
+    <div class="col-lg-8">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informazioni Principali</h5>
+        </div>
+        <div class="card-body">
+          {% if pacchetto.descrizione %}
+            <p class="text-muted" style="white-space: pre-wrap;">{{ pacchetto.descrizione }}</p>
+            <hr>
+          {% endif %}
+          <dl class="row mb-0">
+            <dt class="col-sm-4 text-muted">Destinazione</dt>
+            <dd class="col-sm-8">{{ pacchetto.destinazione or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">Durata</dt>
+            <dd class="col-sm-8">
+              {% if pacchetto.durata_giorni %}
+                {{ pacchetto.durata_giorni }} giorni
+              {% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-sm-4 text-muted">Stato</dt>
+            <dd class="col-sm-8">
+              {% if pacchetto.attivo %}
+                <span class="badge bg-success">Attivo</span>
+              {% else %}
+                <span class="badge bg-secondary">Inattivo</span>
+              {% endif %}
+            </dd>
+
+            <dt class="col-sm-4 text-muted">Servizi inclusi</dt>
+            <dd class="col-sm-8">
+              {% if pacchetto.include_volo %}
+                <span class="badge bg-primary me-1"><i class="bi bi-airplane me-1"></i>Volo</span>
+              {% endif %}
+              {% if pacchetto.include_hotel %}
+                <span class="badge bg-secondary me-1"><i class="bi bi-building me-1"></i>Hotel</span>
+              {% endif %}
+              {% if pacchetto.include_auto %}
+                <span class="badge bg-dark me-1"><i class="bi bi-car-front me-1"></i>Auto</span>
+              {% endif %}
+              {% if not pacchetto.include_volo and not pacchetto.include_hotel and not pacchetto.include_auto %}
+                —
+              {% endif %}
+            </dd>
+          </dl>
+        </div>
+      </div>
+
+      <!-- Tour inclusi -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-map me-2"></i>Tour inclusi
+            <span class="badge bg-primary ms-2">{{ pacchetto.tours|length }}</span>
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if pacchetto.tours %}
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Nome</th>
+                    <th>Destinazione</th>
+                    <th>Categoria</th>
+                    <th>Durata</th>
+                    <th>Prezzo adulto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for t in pacchetto.tours %}
+                  <tr>
+                    <td class="fw-semibold">
+                      <a href="{{ url_for('tours.detail', id=t.id) }}">{{ t.nome }}</a>
+                    </td>
+                    <td>{{ t.destinazione or '—' }}</td>
+                    <td>
+                      {% if t.categoria %}
+                        <span class="badge bg-info text-dark">{{ t.categoria }}</span>
+                      {% else %}—{% endif %}
+                    </td>
+                    <td>{{ t.durata_giorni or '—' }} gg</td>
+                    <td>
+                      {% if t.prezzo_adulto %}€ {{ '%.2f'|format(t.prezzo_adulto) }}{% else %}—{% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i>Nessun tour incluso.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Esperienze incluse -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-stars me-2"></i>Esperienze incluse
+            <span class="badge bg-info text-dark ms-2">{{ pacchetto.esperienze|length }}</span>
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if pacchetto.esperienze %}
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Nome</th>
+                    <th>Destinazione</th>
+                    <th>Categoria</th>
+                    <th>Durata</th>
+                    <th>Prezzo adulto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for e in pacchetto.esperienze %}
+                  <tr>
+                    <td class="fw-semibold">
+                      <a href="{{ url_for('esperienze.detail', id=e.id) }}">{{ e.nome }}</a>
+                    </td>
+                    <td>{{ e.destinazione or '—' }}</td>
+                    <td>
+                      {% if e.categoria %}
+                        <span class="badge bg-info text-dark">{{ e.categoria }}</span>
+                      {% else %}—{% endif %}
+                    </td>
+                    <td>{{ e.durata_ore or '—' }} ore</td>
+                    <td>
+                      {% if e.prezzo_adulto %}€ {{ '%.2f'|format(e.prezzo_adulto) }}{% else %}—{% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i>Nessuna esperienza inclusa.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if pacchetto.note %}
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-sticky me-2"></i>Note</h5>
+        </div>
+        <div class="card-body">
+          <p class="mb-0" style="white-space: pre-wrap;">{{ pacchetto.note }}</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Sidebar: Prezzi -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0"><i class="bi bi-currency-euro me-2"></i>Prezzi</h5>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-6 text-muted">Prezzo base</dt>
+            <dd class="col-sm-6 fw-bold">
+              {% if pacchetto.prezzo_base %}
+                € {{ '%.2f'|format(pacchetto.prezzo_base) }}
+              {% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-sm-6 text-muted">Prezzo adulto</dt>
+            <dd class="col-sm-6 fw-bold fs-5 text-success">
+              {% if pacchetto.prezzo_adulto %}
+                € {{ '%.2f'|format(pacchetto.prezzo_adulto) }}
+              {% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-sm-6 text-muted">Prezzo bambino</dt>
+            <dd class="col-sm-6 fw-bold">
+              {% if pacchetto.prezzo_bambino %}
+                € {{ '%.2f'|format(pacchetto.prezzo_bambino) }}
+              {% else %}—{% endif %}
+            </dd>
+          </dl>
+
+          {% if pacchetto.prezzo_calcolato is defined and pacchetto.prezzo_calcolato() %}
+          <hr>
+          <div class="alert alert-info mb-0">
+            <strong><i class="bi bi-calculator me-1"></i>Prezzo calcolato:</strong>
+            <span class="fs-5 fw-bold">€ {{ '%.2f'|format(pacchetto.prezzo_calcolato()) }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Elimina -->
+<div class="modal fade" id="modalElimina" tabindex="-1" aria-labelledby="modalEliminaLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="modalEliminaLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Conferma Eliminazione</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body">
+        Sei sicuro di voler eliminare il pacchetto <strong>{{ pacchetto.nome }}</strong>? L'operazione non può essere annullata.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+        <form method="POST" action="{{ url_for('pacchetti.elimina', id=pacchetto.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Elimina</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

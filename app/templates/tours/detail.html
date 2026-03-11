@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ tour.nome }} — Roma Lusso Travel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-3">
+    <div class="col">
+      <h1 class="h3 fw-bold"><i class="bi bi-map-fill me-2"></i>{{ tour.nome }}</h1>
+    </div>
+    <div class="col-auto d-flex gap-2">
+      <a href="{{ url_for('tours.modifica', id=tour.id) }}" class="btn btn-warning">
+        <i class="bi bi-pencil me-1"></i>Modifica
+      </a>
+      <button type="button" class="btn btn-danger"
+        data-bs-toggle="modal" data-bs-target="#modalElimina"
+        data-url="{{ url_for('tours.elimina', id=tour.id) }}"
+        data-nome="{{ tour.nome }}">
+        <i class="bi bi-trash me-1"></i>Elimina
+      </button>
+      <a href="{{ url_for('tours.index') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Torna alla lista
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Info principali -->
+    <div class="col-lg-8">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informazioni Principali</h5>
+        </div>
+        <div class="card-body">
+          {% if tour.descrizione %}
+            <p class="text-muted" style="white-space: pre-wrap;">{{ tour.descrizione }}</p>
+            <hr>
+          {% endif %}
+          <dl class="row mb-0">
+            <dt class="col-sm-4 text-muted">Destinazione</dt>
+            <dd class="col-sm-8">{{ tour.destinazione or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">Paese</dt>
+            <dd class="col-sm-8">{{ tour.paese or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">Categoria</dt>
+            <dd class="col-sm-8">
+              {% if tour.categoria %}
+                <span class="badge bg-info text-dark">{{ tour.categoria }}</span>
+              {% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-sm-4 text-muted">Durata</dt>
+            <dd class="col-sm-8">
+              {% if tour.durata_giorni %}
+                {{ tour.durata_giorni }} giorni
+              {% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-sm-4 text-muted">Capacità max</dt>
+            <dd class="col-sm-8">
+              {% if tour.capacita_max %}
+                {{ tour.capacita_max }} persone
+              {% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-sm-4 text-muted">Stato</dt>
+            <dd class="col-sm-8">
+              {% if tour.attivo %}
+                <span class="badge bg-success">Attivo</span>
+              {% else %}
+                <span class="badge bg-secondary">Inattivo</span>
+              {% endif %}
+            </dd>
+          </dl>
+        </div>
+      </div>
+
+      <!-- Incluso / Escluso -->
+      <div class="row g-3">
+        {% if tour.incluso %}
+        <div class="col-md-6">
+          <div class="card shadow-sm h-100 border-success">
+            <div class="card-header bg-success text-white">
+              <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i>Incluso</h5>
+            </div>
+            <div class="card-body">
+              <p class="mb-0" style="white-space: pre-wrap;">{{ tour.incluso }}</p>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        {% if tour.escluso %}
+        <div class="col-md-6">
+          <div class="card shadow-sm h-100 border-danger">
+            <div class="card-header bg-danger text-white">
+              <h5 class="mb-0"><i class="bi bi-x-circle me-2"></i>Non Incluso</h5>
+            </div>
+            <div class="card-body">
+              <p class="mb-0" style="white-space: pre-wrap;">{{ tour.escluso }}</p>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Prezzi -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0"><i class="bi bi-currency-euro me-2"></i>Prezzi</h5>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-6 text-muted">Prezzo adulto</dt>
+            <dd class="col-sm-6 fw-bold fs-5">
+              {% if tour.prezzo_adulto %}
+                € {{ '%.2f'|format(tour.prezzo_adulto) }}
+              {% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-sm-6 text-muted">Prezzo bambino</dt>
+            <dd class="col-sm-6 fw-bold fs-5">
+              {% if tour.prezzo_bambino %}
+                € {{ '%.2f'|format(tour.prezzo_bambino) }}
+              {% else %}—{% endif %}
+            </dd>
+          </dl>
+        </div>
+      </div>
+
+      {% if tour.note %}
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-sticky me-2"></i>Note</h5>
+        </div>
+        <div class="card-body">
+          <p class="mb-0" style="white-space: pre-wrap;">{{ tour.note }}</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Modal Elimina -->
+<div class="modal fade" id="modalElimina" tabindex="-1" aria-labelledby="modalEliminaLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="modalEliminaLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Conferma Eliminazione</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body">
+        Sei sicuro di voler eliminare il tour <strong>{{ tour.nome }}</strong>? L'operazione non può essere annullata.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+        <form method="POST" action="{{ url_for('tours.elimina', id=tour.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Elimina</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}Utenti & Ruoli{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block page_title %}Utenti & Ruoli{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+<li class="breadcrumb-item active">Utenti & Ruoli</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+
+    <!-- Info -->
+    <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
+      <i class="bi bi-info-circle-fill flex-shrink-0"></i>
+      <span>La password viene generata automaticamente e inviata all'email dell'utente.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h3 class="card-title mb-0">
+          <i class="bi bi-people me-2"></i>Elenco Utenti
+        </h3>
+        <a href="{{ url_for('utenti.nuovo') }}" class="btn btn-primary btn-sm">
+          <i class="bi bi-person-plus me-1"></i> Nuovo Utente
+        </a>
+      </div>
+      <div class="card-body">
+        <table id="tabellaUtenti" class="table table-bordered table-striped table-hover align-middle w-100">
+          <thead class="table-light">
+            <tr>
+              <th style="width:50px">#</th>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Ruolo</th>
+              <th>Stato</th>
+              <th>Ultimo accesso</th>
+              <th style="width:140px">Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in utenti %}
+            <tr>
+              <td class="text-muted small">{{ u.id }}</td>
+              <td>
+                <i class="bi bi-person me-1 text-secondary"></i>
+                <strong>{{ u.username }}</strong>
+              </td>
+              <td>{{ u.email }}</td>
+              <td>
+                {% if u.role == 'admin' %}
+                  <span class="badge text-bg-danger">{{ u.role_label() }}</span>
+                {% elif u.role == 'manager' %}
+                  <span class="badge text-bg-warning">{{ u.role_label() }}</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">{{ u.role_label() }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.attivo %}
+                  <span class="badge text-bg-success"><i class="bi bi-check-circle me-1"></i>Attivo</span>
+                {% else %}
+                  <span class="badge text-bg-danger"><i class="bi bi-x-circle me-1"></i>Disattivo</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.last_login %}
+                  <span class="text-muted small">
+                    <i class="bi bi-clock me-1"></i>
+                    {{ u.last_login.strftime('%d/%m/%Y %H:%M') }}
+                  </span>
+                {% else %}
+                  <span class="text-muted small fst-italic">Mai</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex gap-1">
+                  <!-- Modifica -->
+                  <a href="{{ url_for('utenti.modifica', id=u.id) }}"
+                     class="btn btn-warning btn-sm" title="Modifica">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <!-- Reset password -->
+                  <a href="{{ url_for('utenti.reset_password_admin', id=u.id) }}"
+                     class="btn btn-info btn-sm" title="Reset password">
+                    <i class="bi bi-key"></i>
+                  </a>
+                  <!-- Elimina -->
+                  <button type="button" class="btn btn-danger btn-sm"
+                          data-bs-toggle="modal"
+                          data-bs-target="#modalElimina{{ u.id }}"
+                          title="Elimina">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+
+                <!-- Modal Elimina -->
+                <div class="modal fade" id="modalElimina{{ u.id }}" tabindex="-1"
+                     aria-labelledby="modalEliminaLabel{{ u.id }}" aria-hidden="true">
+                  <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                      <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="modalEliminaLabel{{ u.id }}">
+                          <i class="bi bi-exclamation-triangle me-2"></i>Conferma eliminazione
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white"
+                                data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                      </div>
+                      <div class="modal-body">
+                        Sei sicuro di voler eliminare l'utente
+                        <strong>{{ u.username }}</strong> ({{ u.email }})?
+                        <br>
+                        <span class="text-danger small">Questa operazione non può essere annullata.</span>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary"
+                                data-bs-dismiss="modal">Annulla</button>
+                        <form action="{{ url_for('utenti.elimina', id=u.id) }}"
+                              method="POST" class="d-inline">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-1"></i>Elimina
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7" class="text-center text-muted fst-italic py-4">
+                Nessun utente trovato.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+$(function () {
+  $('#tabellaUtenti').DataTable({
+    language: {
+      url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json'
+    },
+    order: [[0, 'asc']],
+    columnDefs: [
+      { orderable: false, targets: 6 }
+    ]
+  });
+});
+</script>
+{% endblock %}

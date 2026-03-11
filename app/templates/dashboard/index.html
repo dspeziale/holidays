@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Dashboard</li>{% endblock %}
+
+{% block content %}
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+          <i class="bi bi-people text-primary fs-4"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold">{{ stats.clienti }}</div>
+          <div class="text-muted small">Clienti</div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent border-0 pt-0">
+        <a href="{{ url_for('clienti.index') }}" class="text-decoration-none small">
+          Vedi tutti <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-success bg-opacity-10 p-3">
+          <i class="bi bi-map text-success fs-4"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold">{{ stats.tours }}</div>
+          <div class="text-muted small">Tour attivi</div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent border-0 pt-0">
+        <a href="{{ url_for('tours.index') }}" class="text-decoration-none small">
+          Vedi tutti <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-warning bg-opacity-10 p-3">
+          <i class="bi bi-stars text-warning fs-4"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold">{{ stats.esperienze }}</div>
+          <div class="text-muted small">Esperienze</div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent border-0 pt-0">
+        <a href="{{ url_for('esperienze.index') }}" class="text-decoration-none small">
+          Vedi tutte <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-info bg-opacity-10 p-3">
+          <i class="bi bi-gift text-info fs-4"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold">{{ stats.pacchetti }}</div>
+          <div class="text-muted small">Pacchetti</div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent border-0 pt-0">
+        <a href="{{ url_for('pacchetti.index') }}" class="text-decoration-none small">
+          Vedi tutti <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Tour recenti -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-map me-2 text-success"></i>Tour recenti</h6>
+        <a href="{{ url_for('tours.nuovo') }}" class="btn btn-success btn-sm">
+          <i class="bi bi-plus-lg"></i> Nuovo
+        </a>
+      </div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+          {% for t in tours_recenti %}
+          <a href="{{ url_for('tours.detail', id=t.id) }}"
+             class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-semibold">{{ t.nome }}</div>
+              <small class="text-muted">{{ t.destinazione }} · {{ t.durata_giorni }} giorni</small>
+            </div>
+            <div class="text-end">
+              <div class="fw-bold text-success">{{ t.prezzo_adulto | formato_valuta }}</div>
+              <span class="badge text-bg-{{ 'success' if t.attivo else 'secondary' }} small">
+                {{ 'Attivo' if t.attivo else 'Inattivo' }}
+              </span>
+            </div>
+          </a>
+          {% else %}
+          <div class="list-group-item text-muted text-center py-4">Nessun tour</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Esperienze recenti -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-stars me-2 text-warning"></i>Esperienze recenti</h6>
+        <a href="{{ url_for('esperienze.nuova') }}" class="btn btn-warning btn-sm">
+          <i class="bi bi-plus-lg"></i> Nuova
+        </a>
+      </div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+          {% for e in esperienze_recenti %}
+          <a href="{{ url_for('esperienze.detail', id=e.id) }}"
+             class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-semibold">{{ e.nome }}</div>
+              <small class="text-muted">{{ e.destinazione }} · {{ e.durata_ore }}h</small>
+            </div>
+            <div class="text-end">
+              <div class="fw-bold text-warning">{{ e.prezzo_adulto | formato_valuta }}</div>
+              <span class="badge text-bg-{{ 'success' if e.attivo else 'secondary' }} small">
+                {{ 'Attiva' if e.attivo else 'Inattiva' }}
+              </span>
+            </div>
+          </a>
+          {% else %}
+          <div class="list-group-item text-muted text-center py-4">Nessuna esperienza</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Accesso rapido API -->
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-search me-2"></i>Ricerca rapida</h6>
+      </div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-auto">
+            <a href="{{ url_for('amadeus.hotels') }}" class="btn btn-outline-primary">
+              <i class="bi bi-building me-1"></i> Cerca Hotel (Amadeus)
+            </a>
+          </div>
+          <div class="col-auto">
+            <a href="{{ url_for('amadeus.voli') }}" class="btn btn-outline-primary">
+              <i class="bi bi-airplane me-1"></i> Cerca Voli (Amadeus)
+            </a>
+          </div>
+          <div class="col-auto">
+            <a href="{{ url_for('amadeus.auto') }}" class="btn btn-outline-primary">
+              <i class="bi bi-car-front me-1"></i> Noleggio Auto (Amadeus)
+            </a>
+          </div>
+          <div class="col-auto">
+            <a href="{{ url_for('getyourguide.index') }}" class="btn btn-outline-warning">
+              <i class="bi bi-ticket-perforated me-1"></i> Esperienze (GetYourGuide)
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

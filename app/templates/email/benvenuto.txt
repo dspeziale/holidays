@@ -1,0 +1,25 @@
+Benvenuto in Roma Lusso Travel — Gestionale
+============================================
+
+Ciao {{ user.username }},
+
+Benvenuto nel gestionale di Roma Lusso Travel!
+Il tuo account è stato creato con successo.
+
+Di seguito le tue credenziali di accesso:
+
+  Email di accesso  : {{ user.email }}
+  Password          : {{ password_generata }}
+
+IMPORTANTE: al primo accesso ti verrà chiesto di cambiare la password.
+Conserva queste credenziali in un posto sicuro.
+
+Accedi al gestionale qui:
+{{ url_for('auth.login', _external=True) }}
+
+---
+Se non sei stato tu a richiedere questo account, contatta immediatamente
+l'amministratore del sistema.
+
+Questa è un'email automatica, si prega di non rispondere.
+© 2025 Roma Lusso Travel — Tutti i diritti riservati.

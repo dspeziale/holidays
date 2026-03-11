@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 10pt;
+            color: #000;
+            line-height: 1.2;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: left;
+        }
+        .header {
+            margin-bottom: 20px;
+        }
+        .total {
+            font-weight: bold;
+            font-size: 12pt;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>ROMA LUSSO TRAVEL</h1>
+        <p>Via Condotti 10, 00187 Roma (RM)<br>
+        P.IVA: 12345678901</p>
+        <hr>
+        <h2>RICEVUTA DI PAGAMENTO</h2>
+    </div>
+
+    <p>
+        <strong>Documento N:</strong> {{ viaggio.numero_ricevuta }}<br>
+        <strong>Data:</strong> {{ viaggio.data_ricevuta.strftime('%d/%m/%Y') }}<br>
+        <strong>Cliente:</strong> {{ viaggio.cliente.nome_completo() }}<br>
+        <strong>Riferimento Viaggio:</strong> {{ viaggio.nome }}
+    </p>
+
+    <h3>DETTAGLIO SERVIZI</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Descrizione</th>
+                <th>Importo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in viaggio.tours %}
+            <tr>
+                <td>Tour: {{ t.nome }} ({{ t.destinazione }})</td>
+                <td>{{ t.prezzo_adulto | formato_valuta(viaggio.cliente.paese) }}</td>
+            </tr>
+            {% endfor %}
+            {% for e in viaggio.esperienze %}
+            <tr>
+                <td>Esperienza: {{ e.nome }} ({{ e.destinazione }})</td>
+                <td>{{ e.prezzo_adulto | formato_valuta(viaggio.cliente.paese) }}</td>
+            </tr>
+            {% endfor %}
+            {% if viaggio.volo_json %}
+                {% set data = viaggio.volo_json | from_json %}
+                {% set voli = data if data is iterable and data is not mapping else [data] %}
+                {% for volo in voli %}
+                <tr>
+                    <td>Volo: {{ volo.get('da','') }} - {{ volo.get('a','') }}</td>
+                    <td>{{ volo.get('prezzo','') | formato_valuta(viaggio.cliente.paese) }}</td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+            {% if viaggio.hotel_json %}
+                {% set hotel = viaggio.hotel_json | from_json %}
+                <tr>
+                    <td>Hotel: {{ hotel.get('nome', '') }}</td>
+                    <td>{{ hotel.get('prezzo', '') | formato_valuta(viaggio.cliente.paese) }}</td>
+                </tr>
+            {% endif %}
+            {% if viaggio.transfer_json %}
+                {% set data = viaggio.transfer_json | from_json %}
+                {% set transfers = data if data is iterable and data is not mapping else [data] %}
+                {% for tr in transfers %}
+                <tr>
+                    <td>Transfer: {{ tr.get('origine', '') }} - {{ tr.get('destinazione', '') }}</td>
+                    <td>{{ tr.get('prezzo', '') | formato_valuta(viaggio.cliente.paese) }}</td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+
+    <p class="total">TOTALE RICEVUTO: {{ viaggio.prezzo_totale | formato_valuta(viaggio.cliente.paese) }}</p>
+
+    <footer style="margin-top: 50px; font-size: 8pt;">
+        <p>Documento generato il {{ now }}</p>
+    </footer>
+</body>
+</html>

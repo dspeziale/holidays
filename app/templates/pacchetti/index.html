@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Pacchetti Viaggio — Roma Lusso Travel{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-3">
+    <div class="col">
+      <h1 class="h3 fw-bold"><i class="bi bi-bag-fill me-2"></i>Pacchetti Viaggio</h1>
+    </div>
+    <div class="col-auto">
+      <a href="{{ url_for('pacchetti.nuovo') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle-fill me-1"></i>Nuovo Pacchetto
+      </a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <table id="tabellaPacchetti" class="table table-hover table-striped align-middle w-100">
+        <thead class="table-dark">
+          <tr>
+            <th>#</th>
+            <th>Nome</th>
+            <th>Destinazione</th>
+            <th>Durata</th>
+            <th>Prezzo adulto</th>
+            <th class="text-center">Tour</th>
+            <th class="text-center">Esperienze</th>
+            <th>Stato</th>
+            <th class="text-center">Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in pacchetti %}
+          <tr>
+            <td>{{ p.id }}</td>
+            <td class="fw-semibold">{{ p.nome }}</td>
+            <td>{{ p.destinazione or '—' }}</td>
+            <td>
+              {% if p.durata_giorni %}
+                {{ p.durata_giorni }} giorni
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if p.prezzo_adulto %}
+                € {{ '%.2f'|format(p.prezzo_adulto) }}
+              {% else %}—{% endif %}
+            </td>
+            <td class="text-center">
+              <span class="badge bg-primary">{{ p.tours|length }}</span>
+            </td>
+            <td class="text-center">
+              <span class="badge bg-info text-dark">{{ p.esperienze|length }}</span>
+            </td>
+            <td>
+              {% if p.attivo %}
+                <span class="badge bg-success">Attivo</span>
+              {% else %}
+                <span class="badge bg-secondary">Inattivo</span>
+              {% endif %}
+            </td>
+            <td class="text-center text-nowrap">
+              <a href="{{ url_for('pacchetti.detail', id=p.id) }}" class="btn btn-info btn-sm" title="Dettaglio">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{{ url_for('pacchetti.modifica', id=p.id) }}" class="btn btn-warning btn-sm" title="Modifica">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <button type="button" class="btn btn-danger btn-sm"
+                data-bs-toggle="modal" data-bs-target="#modalElimina"
+                data-url="{{ url_for('pacchetti.elimina', id=p.id) }}"
+                data-nome="{{ p.nome }}"
+                title="Elimina">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Elimina -->
+<div class="modal fade" id="modalElimina" tabindex="-1" aria-labelledby="modalEliminaLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="modalEliminaLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Conferma Eliminazione</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body">
+        Sei sicuro di voler eliminare il pacchetto <strong id="nomeElimina"></strong>? L'operazione non può essere annullata.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+        <form id="formElimina" method="POST" action="">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Elimina</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script>
+  $(document).ready(function () {
+    $('#tabellaPacchetti').DataTable({
+      language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/it-IT.json' },
+      columnDefs: [{ orderable: false, targets: -1 }],
+      order: [[0, 'desc']]
+    });
+
+    var modalElimina = document.getElementById('modalElimina');
+    modalElimina.addEventListener('show.bs.modal', function (event) {
+      var button = event.relatedTarget;
+      document.getElementById('nomeElimina').textContent = button.getAttribute('data-nome');
+      document.getElementById('formElimina').action = button.getAttribute('data-url');
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% block title %}Viaggi — Roma Lusso Travel{% endblock %}
+{% block page_title %}Viaggi{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Viaggi</li>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+  <div class="col">
+    <h1 class="h3 fw-bold"><i class="bi bi-suitcase-fill me-2"></i>Viaggi</h1>
+  </div>
+  <div class="col-auto">
+    <a href="{{ url_for('wizard.step1') }}" class="btn btn-primary">
+      <i class="bi bi-plus-circle-fill me-1"></i>Nuovo Viaggio
+    </a>
+  </div>
+</div>
+
+<!-- KPI cards -->
+<div class="row g-3 mb-4">
+  {% set totale   = viaggi|length %}
+  {% set confermati = viaggi|selectattr('stato','eq','confermato')|list|length %}
+  {% set pagati   = viaggi|selectattr('stato','eq','pagato')|list|length %}
+  {% set bozze    = viaggi|selectattr('stato','eq','bozza')|list|length %}
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+          <i class="bi bi-suitcase fs-4 text-primary"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold">{{ totale }}</div>
+          <div class="text-muted small">Totale</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-warning bg-opacity-10 p-3">
+          <i class="bi bi-pencil-square fs-4 text-warning"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold">{{ bozze }}</div>
+          <div class="text-muted small">Bozze</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-success bg-opacity-10 p-3">
+          <i class="bi bi-check-circle fs-4 text-success"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold">{{ confermati }}</div>
+          <div class="text-muted small">Confermati</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-info bg-opacity-10 p-3">
+          <i class="bi bi-cash-coin fs-4 text-info"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold">{{ pagati }}</div>
+          <div class="text-muted small">Pagati</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <table id="tabellaViaggi" class="table table-hover table-striped align-middle w-100">
+      <thead class="table-dark">
+        <tr>
+          <th>#</th>
+          <th>Cliente</th>
+          <th>Viaggio</th>
+          <th>Destinazione</th>
+          <th>Partenza</th>
+          <th>Rientro</th>
+          <th class="text-center">Partecipanti</th>
+          <th>Totale</th>
+          <th>Stato</th>
+          <th class="text-center">Azioni</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in viaggi %}
+        <tr>
+          <td>{{ v.id }}</td>
+          <td>
+            <a href="{{ url_for('clienti.detail', id=v.cliente_id) }}" class="text-decoration-none fw-semibold">
+              {{ v.cliente.nome }} {{ v.cliente.cognome }}
+            </a>
+          </td>
+          <td class="fw-semibold">{{ v.nome }}</td>
+          <td>{{ v.destinazione or '—' }}</td>
+          <td>
+            {% if v.data_partenza %}
+              {{ v.data_partenza.strftime('%d/%m/%Y') }}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if v.data_rientro %}
+              {{ v.data_rientro.strftime('%d/%m/%Y') }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-center">
+            <span class="badge text-bg-secondary">{{ v.n_adulti }}A</span>
+            {% if v.n_bambini %}<span class="badge text-bg-light border ms-1">{{ v.n_bambini }}B</span>{% endif %}
+          </td>
+          <td>
+            {% if v.prezzo_totale %}
+              <span class="fw-semibold">{{ v.prezzo_totale | formato_valuta(v.cliente.paese) }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% set stato_cls = {
+              'bozza': 'text-bg-secondary',
+              'confermato': 'text-bg-primary',
+              'pagato': 'text-bg-success',
+              'completato': 'text-bg-info',
+              'annullato': 'text-bg-danger'
+            } %}
+            <span class="badge {{ stato_cls.get(v.stato, 'text-bg-secondary') }}">
+              {{ v.stato_label() }}
+            </span>
+          </td>
+          <td class="text-center text-nowrap">
+            <a href="{{ url_for('viaggi.detail', id=v.id) }}" class="btn btn-info btn-sm" title="Dettaglio">
+              <i class="bi bi-eye"></i>
+            </a>
+            <button type="button" class="btn btn-danger btn-sm"
+              data-bs-toggle="modal" data-bs-target="#modalElimina"
+              data-url="{{ url_for('viaggi.elimina', id=v.id) }}"
+              data-nome="{{ v.nome }}"
+              title="Elimina">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Elimina -->
+<div class="modal fade" id="modalElimina" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Conferma Eliminazione</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        Sei sicuro di voler eliminare il viaggio <strong id="nomeElimina"></strong>?
+        L'operazione non può essere annullata.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+        <form id="formElimina" method="POST" action="">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Elimina</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script>
+$(document).ready(function () {
+  $('#tabellaViaggi').DataTable({
+    language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/it-IT.json' },
+    columnDefs: [{ orderable: false, targets: -1 }],
+    order: [[0, 'desc']]
+  });
+
+  document.getElementById('modalElimina').addEventListener('show.bs.modal', function (e) {
+    var btn = e.relatedTarget;
+    document.getElementById('nomeElimina').textContent = btn.getAttribute('data-nome');
+    document.getElementById('formElimina').action = btn.getAttribute('data-url');
+  });
+});
+</script>
+{% endblock %}

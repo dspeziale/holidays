@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ cliente.nome_completo() }} — Roma Lusso Travel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-3">
+    <div class="col">
+      <h1 class="h3 fw-bold"><i class="bi bi-person-fill me-2"></i>{{ cliente.nome_completo() }}</h1>
+    </div>
+    <div class="col-auto d-flex gap-2">
+      <a href="{{ url_for('clienti.modifica', id=cliente.id) }}" class="btn btn-warning">
+        <i class="bi bi-pencil me-1"></i>Modifica
+      </a>
+      <button type="button" class="btn btn-danger"
+        data-bs-toggle="modal" data-bs-target="#modalElimina"
+        data-url="{{ url_for('clienti.elimina', id=cliente.id) }}"
+        data-nome="{{ cliente.nome_completo() }}">
+        <i class="bi bi-trash me-1"></i>Elimina
+      </button>
+      <a href="{{ url_for('clienti.index') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Torna alla lista
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Dati anagrafici -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-person-vcard me-2"></i>Dati Anagrafici</h5>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-4 text-muted">Nome</dt>
+            <dd class="col-sm-8">{{ cliente.nome or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">Cognome</dt>
+            <dd class="col-sm-8">{{ cliente.cognome or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">Email</dt>
+            <dd class="col-sm-8">
+              {% if cliente.email %}
+                <a href="mailto:{{ cliente.email }}">{{ cliente.email }}</a>
+              {% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-sm-4 text-muted">Telefono</dt>
+            <dd class="col-sm-8">{{ cliente.telefono or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">Data di Nascita</dt>
+            <dd class="col-sm-8">
+              {% if cliente.data_nascita %}
+                {{ cliente.data_nascita.strftime('%d/%m/%Y') }}
+              {% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-sm-4 text-muted">Nazionalità</dt>
+            <dd class="col-sm-8">{{ cliente.nazionalita or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">Stato</dt>
+            <dd class="col-sm-8">
+              {% if cliente.attivo %}
+                <span class="badge bg-success">Attivo</span>
+              {% else %}
+                <span class="badge bg-secondary">Inattivo</span>
+              {% endif %}
+            </dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <!-- Documento e Indirizzo -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="mb-0"><i class="bi bi-card-text me-2"></i>Documento</h5>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-5 text-muted">Tipo Documento</dt>
+            <dd class="col-sm-7">{{ cliente.tipo_documento or '—' }}</dd>
+
+            <dt class="col-sm-5 text-muted">Numero Documento</dt>
+            <dd class="col-sm-7">{{ cliente.numero_documento or '—' }}</dd>
+
+            <dt class="col-sm-5 text-muted">Data Rilascio</dt>
+            <dd class="col-sm-7">
+              {% if cliente.data_rilascio_documento %}
+                {{ cliente.data_rilascio_documento.strftime('%d/%m/%Y') }}
+              {% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-sm-5 text-muted">Scadenza Documento</dt>
+            <dd class="col-sm-7">
+              {% if cliente.data_scadenza_documento %}
+                {{ cliente.data_scadenza_documento.strftime('%d/%m/%Y') }}
+              {% else %}—{% endif %}
+            </dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="mb-0"><i class="bi bi-geo-alt-fill me-2"></i>Indirizzo</h5>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-4 text-muted">Indirizzo</dt>
+            <dd class="col-sm-8">{{ cliente.indirizzo or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">Città</dt>
+            <dd class="col-sm-8">{{ cliente.citta or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">CAP</dt>
+            <dd class="col-sm-8">{{ cliente.cap or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">Paese</dt>
+            <dd class="col-sm-8">{{ cliente.paese or '—' }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <!-- Note -->
+    {% if cliente.note %}
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-sticky me-2"></i>Note</h5>
+        </div>
+        <div class="card-body">
+          <p class="mb-0" style="white-space: pre-wrap;">{{ cliente.note }}</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal Elimina -->
+<div class="modal fade" id="modalElimina" tabindex="-1" aria-labelledby="modalEliminaLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="modalEliminaLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Conferma Eliminazione</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body">
+        Sei sicuro di voler eliminare il cliente <strong id="nomeElimina">{{ cliente.nome_completo() }}</strong>? L'operazione non può essere annullata.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+        <form id="formElimina" method="POST" action="{{ url_for('clienti.elimina', id=cliente.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Elimina</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

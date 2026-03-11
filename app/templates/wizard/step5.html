@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% block title %}Wizard Viaggio — Riepilogo{% endblock %}
+{% block page_title %}Nuovo Viaggio — Riepilogo{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('viaggi.index') }}">Viaggi</a></li>
+<li class="breadcrumb-item active">Nuovo — Riepilogo</li>
+{% endblock %}
+
+{% block content %}
+{% include 'wizard/_progress.html' %}
+
+<div class="row g-3">
+  <div class="col-lg-8">
+
+    <!-- Cliente -->
+    <div class="card mb-3 border-start border-primary border-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="text-muted small">CLIENTE</div>
+            <div class="fw-bold fs-5">{{ cliente.nome }} {{ cliente.cognome }}</div>
+            <div class="text-muted">{{ cliente.email }}
+              {% if cliente.telefono %} · {{ cliente.telefono }}{% endif %}
+              {% if cliente.nazionalita %} · {{ cliente.nazionalita }}{% endif %}
+            </div>
+          </div>
+          <a href="{{ url_for('wizard.step1') }}" class="btn btn-outline-secondary btn-sm">Modifica</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dati viaggio -->
+    <div class="card mb-3 border-start border-success border-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="text-muted small">VIAGGIO</div>
+            <div class="fw-bold fs-5">{{ wiz.nome }}</div>
+            <div class="row g-2 mt-1 small text-muted">
+              {% if wiz.destinazione %}
+              <div class="col-auto"><i class="bi bi-geo-alt me-1"></i>{{ wiz.destinazione }}</div>
+              {% endif %}
+              {% if wiz.data_partenza %}
+              <div class="col-auto"><i class="bi bi-calendar me-1"></i>{{ wiz.data_partenza }} → {{ wiz.data_rientro or '?' }}</div>
+              {% endif %}
+              <div class="col-auto"><i class="bi bi-people me-1"></i>{{ wiz.get('n_adulti',1) }} adulti, {{ wiz.get('n_bambini',0) }} bambini</div>
+              {% if wiz.get('include_volo') %}<div class="col-auto"><i class="bi bi-airplane me-1"></i>Volo</div>{% endif %}
+              {% if wiz.get('include_hotel') %}<div class="col-auto"><i class="bi bi-building me-1"></i>Hotel</div>{% endif %}
+              {% if wiz.get('include_auto') %}<div class="col-auto"><i class="bi bi-car-front me-1"></i>Auto</div>{% endif %}
+              {% if wiz.get('include_treno') %}<div class="col-auto"><i class="bi bi-train-front me-1"></i>Treno</div>{% endif %}
+              {% if wiz.get('include_transfer') %}<div class="col-auto"><i class="bi bi-taxi-front me-1"></i>Transfer</div>{% endif %}
+            </div>
+            {% if wiz.note_cliente %}
+            <div class="mt-2 small"><i class="bi bi-chat-quote me-1"></i><em>{{ wiz.note_cliente }}</em></div>
+            {% endif %}
+          </div>
+          <a href="{{ url_for('wizard.step2') }}" class="btn btn-outline-secondary btn-sm">Modifica</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pacchetto base -->
+    {% if pacchetto %}
+    <div class="card mb-3 border-start border-info border-3">
+      <div class="card-body">
+        <div class="text-muted small">PACCHETTO BASE</div>
+        <div class="fw-semibold">{{ pacchetto.nome }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Tour -->
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-map me-2 text-success"></i>Tour ({{ tours|length }})</h6>
+        <a href="{{ url_for('wizard.step3') }}" class="btn btn-outline-secondary btn-sm">Modifica</a>
+      </div>
+      {% if tours %}
+      <div class="list-group list-group-flush">
+        {% for t in tours %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold">{{ t.nome }}</div>
+            <small class="text-muted">{{ t.destinazione }} · {{ t.durata_giorni }} gg</small>
+          </div>
+          <span class="badge text-bg-success">€{{ "%.0f"|format(t.prezzo_adulto) }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-body text-muted small">Nessun tour selezionato</div>
+      {% endif %}
+    </div>
+
+    <!-- Esperienze -->
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="bi bi-stars me-2 text-info"></i>Esperienze ({{ esperienze|length }})</h6>
+        <a href="{{ url_for('wizard.step4') }}" class="btn btn-outline-secondary btn-sm">Modifica</a>
+      </div>
+      {% if esperienze %}
+      <div class="list-group list-group-flush">
+        {% for e in esperienze %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold">{{ e.nome }}</div>
+            <small class="text-muted">{{ e.destinazione }} · {{ e.durata_ore }}h</small>
+          </div>
+          <span class="badge text-bg-info">€{{ "%.0f"|format(e.prezzo_adulto) }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-body text-muted small">Nessuna esperienza selezionata</div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Sidebar totale -->
+  <div class="col-lg-4">
+    <div class="card mb-3 shadow-sm">
+      <div class="card-header bg-primary text-white">
+        <h6 class="card-title mb-0"><i class="bi bi-receipt me-2"></i>Totale stimato</h6>
+      </div>
+      <div class="card-body">
+        <div class="fs-2 fw-bold text-primary mb-1">€{{ "%.2f"|format(prezzo_totale) }}</div>
+        <div class="text-muted small">Basato su {{ wiz.get('n_adulti',1) }} adulti e {{ wiz.get('n_bambini',0) }} bambini</div>
+        {% if wiz.get('budget') %}
+        <div class="mt-2 small">
+          Budget cliente: <strong>€{{ wiz.budget }}</strong>
+          {% set diff = (prezzo_totale - wiz.budget|float) %}
+          {% if diff > 0 %}
+          <span class="text-danger ms-2"><i class="bi bi-exclamation-triangle"></i> +€{{ "%.0f"|format(diff) }} oltre budget</span>
+          {% elif diff < 0 %}
+          <span class="text-success ms-2"><i class="bi bi-check-circle"></i> €{{ "%.0f"|format(diff|abs) }} sotto budget</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Stato iniziale</label>
+            <select name="stato" class="form-select">
+              {% for val, label in [('bozza','Bozza'),('confermato','Confermato'),('pagato','Pagato')] %}
+              <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-success btn-lg">
+              <i class="bi bi-check-lg me-2"></i>Crea Viaggio
+            </button>
+          </div>
+        </form>
+        <div class="text-center mt-2">
+          <a href="{{ url_for('wizard.step4') }}" class="text-muted small">
+            <i class="bi bi-arrow-left me-1"></i>Indietro
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

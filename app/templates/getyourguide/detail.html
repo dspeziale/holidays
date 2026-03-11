@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{# ── Normalizzazione campi demo vs API reale ── #}
+{% set titolo   = attivita.get('title',   attivita.get('nome', 'Dettaglio Attivita\'')) %}
+{% set astratto = attivita.get('abstract', attivita.get('descrizione', '')) %}
+{% set durata   = attivita.get('duration', '') %}
+{% set dest     = attivita.get('destinazione', attivita.get('destination', '')) %}
+{% set cat      = attivita.get('categoria', attivita.get('category', '')) %}
+{% set link_ext = attivita.get('url', '') %}
+{% set immagine = attivita.get('img', '') %}
+{% if not immagine and attivita.get('pictures') %}
+  {% set immagine = attivita['pictures'][0].get('url', '') %}
+{% endif %}
+{% if attivita.get('prezzo') %}
+  {% set prezzo_str = '%.0f'|format(attivita.prezzo) ~ ' €' %}
+{% elif attivita.get('price') and attivita.price.get('values') %}
+  {% set prezzo_str = attivita.price.values[0].amount ~ ' ' ~ attivita.price.values[0].get('currency','EUR') %}
+{% else %}
+  {% set prezzo_str = '' %}
+{% endif %}
+
+{% block title %}{{ titolo }}{% endblock %}
+{% block page_title %}Dettaglio Esperienza{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('getyourguide.index') }}">GetYourGuide</a></li>
+<li class="breadcrumb-item active">{{ titolo | truncate(40) }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9">
+
+    <div class="mb-3">
+      <a href="{{ url_for('getyourguide.index') }}" class="btn btn-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Torna alla ricerca
+      </a>
+    </div>
+
+    <div class="card shadow-sm">
+
+      {# Immagine principale #}
+      {% if immagine %}
+      <img src="{{ immagine }}" class="card-img-top object-fit-cover"
+           style="max-height:360px" alt="{{ titolo }}"
+           onerror="this.style.display='none'">
+      {% else %}
+      <div class="d-flex align-items-center justify-content-center bg-light" style="height:200px">
+        <i class="bi bi-ticket-perforated text-muted" style="font-size:3.5rem"></i>
+      </div>
+      {% endif %}
+
+      <div class="card-body">
+
+        {# Titolo e badge #}
+        <div class="mb-1">
+          {% if dest %}<span class="badge text-bg-light border me-1"><i class="bi bi-geo-alt"></i> {{ dest }}</span>{% endif %}
+          {% if cat  %}<span class="badge text-bg-light border">{{ cat }}</span>{% endif %}
+        </div>
+        <h3 class="card-title mt-2 mb-4">
+          <i class="bi bi-ticket-perforated me-2 text-primary"></i>{{ titolo }}
+        </h3>
+
+        {# Meta: durata + prezzo #}
+        <div class="row g-3 mb-4">
+          {% if durata %}
+          <div class="col-auto">
+            <div class="d-flex align-items-center gap-2 text-muted">
+              <i class="bi bi-clock fs-5"></i>
+              <div>
+                <div class="text-uppercase fw-semibold" style="font-size:.7rem">Durata</div>
+                <div class="fw-semibold text-dark">{{ durata }}</div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          {% if prezzo_str %}
+          <div class="col-auto">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-tag fs-5 text-success"></i>
+              <div>
+                <div class="text-uppercase fw-semibold text-muted" style="font-size:.7rem">Prezzo da</div>
+                <div class="fw-bold text-success fs-5">{{ prezzo_str }} <span class="fw-normal fs-6 text-muted">/ persona</span></div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          {# Campi extra API reale (se presenti) #}
+          {% if attivita.get('meeting_point') or attivita.get('punto_incontro') %}
+          <div class="col-auto">
+            <div class="d-flex align-items-center gap-2 text-muted">
+              <i class="bi bi-pin-map fs-5"></i>
+              <div>
+                <div class="text-uppercase fw-semibold" style="font-size:.7rem">Punto d'incontro</div>
+                <div class="fw-semibold text-dark">{{ attivita.get('meeting_point') or attivita.get('punto_incontro') }}</div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if attivita.get('fornitore') %}
+          <div class="col-auto">
+            <div class="d-flex align-items-center gap-2 text-muted">
+              <i class="bi bi-building fs-5"></i>
+              <div>
+                <div class="text-uppercase fw-semibold" style="font-size:.7rem">Fornitore</div>
+                <div class="fw-semibold text-dark">{{ attivita.fornitore }}</div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <hr>
+
+        {# Descrizione #}
+        {% if astratto %}
+        <h5>Descrizione</h5>
+        <p class="text-muted" style="line-height:1.8">{{ astratto }}</p>
+        {% endif %}
+
+        {# Descrizione lunga API reale #}
+        {% if attivita.get('description') and attivita.get('description') != astratto %}
+        <p class="text-muted" style="line-height:1.8">{{ attivita.description }}</p>
+        {% endif %}
+
+        {# Gallery (solo API reale) #}
+        {% if attivita.get('pictures') and attivita.pictures | length > 1 %}
+        <hr>
+        <h5 class="mb-3">Foto</h5>
+        <div class="row g-2">
+          {% for pic in attivita.pictures[1:5] %}
+          <div class="col-6 col-md-3">
+            <img src="{{ pic.get('url','') }}"
+                 class="img-fluid rounded object-fit-cover w-100"
+                 style="height:100px" alt="Foto"
+                 onerror="this.style.display='none'">
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {# Nota demo #}
+        {% set is_demo = config.get('GETYOURGUIDE_API_KEY') is none or config.get('GETYOURGUIDE_API_KEY') == '' %}
+        {% if is_demo %}
+        <div class="alert alert-light border mt-4 mb-0">
+          <i class="bi bi-info-circle me-1 text-info"></i>
+          Dati di esempio. Clicca "Prenota" per vedere disponibilita' e prezzi reali su GetYourGuide.
+        </div>
+        {% endif %}
+
+        {# CTA #}
+        <div class="mt-4 d-flex flex-wrap gap-2">
+          {% if link_ext %}
+          <a href="{{ link_ext }}" target="_blank" rel="noopener noreferrer"
+             class="btn btn-primary btn-lg">
+            <i class="bi bi-box-arrow-up-right me-2"></i>Prenota su GetYourGuide
+          </a>
+          {% endif %}
+          <a href="{{ url_for('getyourguide.index') }}" class="btn btn-secondary btn-lg">
+            <i class="bi bi-arrow-left me-1"></i>Torna alla ricerca
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

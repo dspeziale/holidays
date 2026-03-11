@@ -1,0 +1,374 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('pacchetti.index') }}">Pacchetti</a></li>
+<li class="breadcrumb-item active">{{ title }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dnd-zone {
+    min-height: 120px;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 8px;
+    background: #f8f9fa;
+    transition: background .2s, border-color .2s;
+  }
+  .dnd-zone.drag-over {
+    background: #e8f4fd;
+    border-color: #0d6efd;
+  }
+  .dnd-zone.selected-zone {
+    background: #f0fff4;
+    border-color: #198754;
+  }
+  .dnd-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    cursor: grab;
+    user-select: none;
+    transition: box-shadow .15s;
+  }
+  .dnd-item:active { cursor: grabbing; }
+  .dnd-item:hover  { box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+  .dnd-item .drag-handle { color: #adb5bd; margin-right: 8px; font-size: 1rem; }
+  .dnd-item .item-badge  { font-size: .7rem; }
+  .dnd-item .item-info   { flex: 1; min-width: 0; }
+  .dnd-item .item-name   { font-weight: 600; font-size: .875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dnd-item .item-sub    { font-size: .75rem; color: #6c757d; }
+  .sortable-ghost { opacity: .4; background: #cce5ff !important; }
+  .dnd-empty { color: #adb5bd; text-align: center; padding: 20px 8px; font-size: .875rem; pointer-events: none; }
+  .zone-label { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; color: #6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="POST" novalidate id="frmPacchetto">
+  {{ form.hidden_tag() }}
+  <!-- hidden inputs generati da JS -->
+  <div id="hiddenTours"></div>
+  <div id="hiddenEsperienze"></div>
+
+  <div class="row g-3">
+
+    <!-- ── COLONNA PRINCIPALE ─────────────────────────────────── -->
+    <div class="col-lg-8">
+
+      <!-- Dati generali -->
+      <div class="card mb-3">
+        <div class="card-header"><h6 class="card-title mb-0"><i class="bi bi-info-circle me-2"></i>Dati generali</h6></div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              {{ form.nome.label(class='form-label fw-semibold') }}
+              {{ form.nome(class='form-control' + (' is-invalid' if form.nome.errors else '')) }}
+              {% for e in form.nome.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-12">
+              {{ form.descrizione.label(class='form-label fw-semibold') }}
+              {{ form.descrizione(class='form-control', rows=3) }}
+            </div>
+            <div class="col-md-8">
+              {{ form.destinazione.label(class='form-label fw-semibold') }}
+              {{ form.destinazione(class='form-control') }}
+            </div>
+            <div class="col-md-4">
+              {{ form.durata_giorni.label(class='form-label fw-semibold') }}
+              {{ form.durata_giorni(class='form-control' + (' is-invalid' if form.durata_giorni.errors else '')) }}
+              {% for e in form.durata_giorni.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DRAG & DROP TOUR ────────────────────────────────── -->
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="card-title mb-0"><i class="bi bi-map me-2 text-success"></i>Tour inclusi</h6>
+          <span class="badge text-bg-success" id="badge-tours">0 selezionati</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="zone-label">Disponibili — trascina nel pacchetto</div>
+              <div id="tours-src" class="dnd-zone">
+                {% if tours_disponibili %}
+                  {% for t in tours_disponibili %}
+                    {% if t.id not in (selected_tours or []) %}
+                    <div class="dnd-item" data-id="{{ t.id }}" data-name="{{ t.nome }}" data-type="tour">
+                      <i class="bi bi-grip-vertical drag-handle"></i>
+                      <div class="item-info">
+                        <div class="item-name">{{ t.nome }}</div>
+                        <div class="item-sub">{{ t.destinazione or '' }} · {{ t.durata_giorni }} gg</div>
+                      </div>
+                      <span class="badge text-bg-success item-badge">€{{ "%.0f"|format(t.prezzo_adulto) }}</span>
+                    </div>
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+                <div class="dnd-empty" id="tours-src-empty"
+                     {% if tours_disponibili %}style="display:none"{% endif %}>
+                  Nessun tour disponibile
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="zone-label text-success">Nel pacchetto</div>
+              <div id="tours-dst" class="dnd-zone selected-zone">
+                {% for t in tours_disponibili %}
+                  {% if t.id in (selected_tours or []) %}
+                  <div class="dnd-item" data-id="{{ t.id }}" data-name="{{ t.nome }}" data-type="tour">
+                    <i class="bi bi-grip-vertical drag-handle"></i>
+                    <div class="item-info">
+                      <div class="item-name">{{ t.nome }}</div>
+                      <div class="item-sub">{{ t.destinazione or '' }} · {{ t.durata_giorni }} gg</div>
+                    </div>
+                    <span class="badge text-bg-success item-badge">€{{ "%.0f"|format(t.prezzo_adulto) }}</span>
+                  </div>
+                  {% endif %}
+                {% endfor %}
+                <div class="dnd-empty" id="tours-dst-empty">Trascina qui i tour</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DRAG & DROP ESPERIENZE ─────────────────────────── -->
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="card-title mb-0"><i class="bi bi-stars me-2 text-warning"></i>Esperienze incluse</h6>
+          <span class="badge text-bg-warning text-dark" id="badge-esperienze">0 selezionate</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="zone-label">Disponibili — trascina nel pacchetto</div>
+              <div id="esperienze-src" class="dnd-zone">
+                {% if esperienze_disponibili %}
+                  {% for e in esperienze_disponibili %}
+                    {% if e.id not in (selected_esperienze or []) %}
+                    <div class="dnd-item" data-id="{{ e.id }}" data-name="{{ e.nome }}" data-type="esp">
+                      <i class="bi bi-grip-vertical drag-handle"></i>
+                      <div class="item-info">
+                        <div class="item-name">{{ e.nome }}</div>
+                        <div class="item-sub">{{ e.destinazione or '' }} · {{ e.durata_ore }}h</div>
+                      </div>
+                      <span class="badge text-bg-warning text-dark item-badge">€{{ "%.0f"|format(e.prezzo_adulto) }}</span>
+                    </div>
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+                <div class="dnd-empty" id="esperienze-src-empty"
+                     {% if esperienze_disponibili %}style="display:none"{% endif %}>
+                  Nessuna esperienza disponibile
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="zone-label text-warning">Nel pacchetto</div>
+              <div id="esperienze-dst" class="dnd-zone selected-zone">
+                {% for e in esperienze_disponibili %}
+                  {% if e.id in (selected_esperienze or []) %}
+                  <div class="dnd-item" data-id="{{ e.id }}" data-name="{{ e.nome }}" data-type="esp">
+                    <i class="bi bi-grip-vertical drag-handle"></i>
+                    <div class="item-info">
+                      <div class="item-name">{{ e.nome }}</div>
+                      <div class="item-sub">{{ e.destinazione or '' }} · {{ e.durata_ore }}h</div>
+                    </div>
+                    <span class="badge text-bg-warning text-dark item-badge">€{{ "%.0f"|format(e.prezzo_adulto) }}</span>
+                  </div>
+                  {% endif %}
+                {% endfor %}
+                <div class="dnd-empty" id="esperienze-dst-empty">Trascina qui le esperienze</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Note -->
+      <div class="card mb-3">
+        <div class="card-body">
+          {{ form.note.label(class='form-label fw-semibold') }}
+          {{ form.note(class='form-control', rows=3) }}
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SIDEBAR ─────────────────────────────────────────────── -->
+    <div class="col-lg-4">
+
+      <div class="card mb-3">
+        <div class="card-header bg-success text-white">
+          <h6 class="card-title mb-0"><i class="bi bi-currency-euro me-2"></i>Prezzi</h6>
+        </div>
+        <div class="card-body">
+          {% for field in [form.prezzo_base, form.prezzo_adulto, form.prezzo_bambino] %}
+          <div class="mb-3">
+            {{ field.label(class='form-label fw-semibold') }}
+            <div class="input-group">
+              <span class="input-group-text">€</span>
+              {{ field(class='form-control' + (' is-invalid' if field.errors else '')) }}
+            </div>
+            {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="card-title mb-0"><i class="bi bi-toggles me-2"></i>Servizi inclusi</h6>
+        </div>
+        <div class="card-body">
+          {% for field in [form.include_volo, form.include_hotel, form.include_auto] %}
+          <div class="form-check form-switch mb-2">
+            {{ field(class='form-check-input', role='switch') }}
+            {{ field.label(class='form-check-label') }}
+          </div>
+          {% endfor %}
+          <hr>
+          <div class="form-check form-switch">
+            {{ form.attivo(class='form-check-input', role='switch') }}
+            {{ form.attivo.label(class='form-check-label fw-semibold') }}
+          </div>
+        </div>
+      </div>
+
+      <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-lg me-1"></i> Salva pacchetto
+        </button>
+        <a href="{{ url_for('pacchetti.index') }}" class="btn btn-secondary">
+          <i class="bi bi-x-lg me-1"></i> Annulla
+        </a>
+        {% if pacchetto %}
+        <button type="button" class="btn btn-outline-danger btn-sm mt-2"
+                data-bs-toggle="modal" data-bs-target="#modalElimina"
+                data-url="{{ url_for('pacchetti.elimina', id=pacchetto.id) }}"
+                data-nome="{{ pacchetto.nome }}">
+          <i class="bi bi-trash me-1"></i> Elimina pacchetto
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</form>
+
+{% if pacchetto %}
+<div class="modal fade" id="modalElimina" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Conferma eliminazione</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        Eliminare il pacchetto <strong id="nomeItem"></strong>?
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+        <form id="formElimina" method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger">Elimina</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+(function () {
+
+  // ── Crea Sortable su una zona ──────────────────────────────────
+  function makeSortable(elId, group, emptyId, onUpdate) {
+    const el = document.getElementById(elId);
+    Sortable.create(el, {
+      group: group,
+      animation: 150,
+      handle: '.drag-handle',
+      ghostClass: 'sortable-ghost',
+      onAdd: onUpdate,
+      onRemove: onUpdate,
+      onSort: onUpdate,
+    });
+  }
+
+  // ── Aggiorna hidden inputs e badge ────────────────────────────
+  function syncHiddens(dstId, hiddenContainerId, inputName, badgeId, badgeLabel) {
+    const dst = document.getElementById(dstId);
+    const container = document.getElementById(hiddenContainerId);
+    const items = dst.querySelectorAll('.dnd-item');
+    container.innerHTML = '';
+    items.forEach(item => {
+      const inp = document.createElement('input');
+      inp.type = 'hidden';
+      inp.name = inputName;
+      inp.value = item.dataset.id;
+      container.appendChild(inp);
+    });
+    const badge = document.getElementById(badgeId);
+    badge.textContent = items.length + ' ' + badgeLabel;
+    updateEmpty(dstId, items.length === 0);
+  }
+
+  function updateEmpty(zoneId, isEmpty) {
+    const emptyMap = {
+      'tours-dst': 'tours-dst-empty',
+      'tours-src': 'tours-src-empty',
+      'esperienze-dst': 'esperienze-dst-empty',
+      'esperienze-src': 'esperienze-src-empty',
+    };
+    const emptyEl = document.getElementById(emptyMap[zoneId]);
+    if (emptyEl) emptyEl.style.display = isEmpty ? '' : 'none';
+  }
+
+  function updateSrcEmpty(srcId) {
+    const src = document.getElementById(srcId);
+    const items = src.querySelectorAll('.dnd-item');
+    updateEmpty(srcId, items.length === 0);
+  }
+
+  function syncAll() {
+    syncHiddens('tours-dst', 'hiddenTours', 'tour_ids', 'badge-tours', 'selezionati');
+    syncHiddens('esperienze-dst', 'hiddenEsperienze', 'esperienza_ids', 'badge-esperienze', 'selezionate');
+    updateSrcEmpty('tours-src');
+    updateSrcEmpty('esperienze-src');
+  }
+
+  // ── Init Sortable ──────────────────────────────────────────────
+  makeSortable('tours-src',      { name: 'tours',      pull: true, put: true }, null, syncAll);
+  makeSortable('tours-dst',      { name: 'tours',      pull: true, put: true }, null, syncAll);
+  makeSortable('esperienze-src', { name: 'esperienze', pull: true, put: true }, null, syncAll);
+  makeSortable('esperienze-dst', { name: 'esperienze', pull: true, put: true }, null, syncAll);
+
+  // ── Sincronizza al caricamento per badge iniziali ─────────────
+  syncAll();
+
+  // ── Modal elimina ──────────────────────────────────────────────
+  const modalEl = document.getElementById('modalElimina');
+  if (modalEl) {
+    modalEl.addEventListener('show.bs.modal', function (e) {
+      const btn = e.relatedTarget;
+      document.getElementById('nomeItem').textContent = btn.dataset.nome;
+      document.getElementById('formElimina').action = btn.dataset.url;
+    });
+  }
+
+})();
+</script>
+{% endblock %}

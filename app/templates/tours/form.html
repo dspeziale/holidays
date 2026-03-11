@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} — Roma Lusso Travel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-3">
+    <div class="col">
+      <h1 class="h3 fw-bold">
+        <i class="bi bi-map{% if tour %}-fill{% endif %} me-2"></i>{{ title }}
+      </h1>
+    </div>
+    <div class="col-auto">
+      <a href="{{ url_for('tours.index') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Torna alla lista
+      </a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="row g-3">
+          <!-- Nome -->
+          <div class="col-12">
+            <div class="mb-3">
+              {{ form.nome.label(class='form-label fw-semibold') }}
+              {{ form.nome(class='form-control' + (' is-invalid' if form.nome.errors else '')) }}
+              {% for error in form.nome.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Descrizione -->
+          <div class="col-12">
+            <div class="mb-3">
+              {{ form.descrizione.label(class='form-label fw-semibold') }}
+              {{ form.descrizione(class='form-control' + (' is-invalid' if form.descrizione.errors else ''), rows=4) }}
+              {% for error in form.descrizione.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Destinazione e Paese -->
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.destinazione.label(class='form-label fw-semibold') }}
+              {{ form.destinazione(class='form-control' + (' is-invalid' if form.destinazione.errors else '')) }}
+              {% for error in form.destinazione.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.paese.label(class='form-label fw-semibold') }}
+              {{ form.paese(class='form-control' + (' is-invalid' if form.paese.errors else '')) }}
+              {% for error in form.paese.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Categoria e Durata -->
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.categoria.label(class='form-label fw-semibold') }}
+              {{ form.categoria(class='form-select' + (' is-invalid' if form.categoria.errors else '')) }}
+              {% for error in form.categoria.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.durata_giorni.label(class='form-label fw-semibold') }}
+              {{ form.durata_giorni(class='form-control' + (' is-invalid' if form.durata_giorni.errors else '')) }}
+              {% for error in form.durata_giorni.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Prezzi -->
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.prezzo_adulto.label(class='form-label fw-semibold') }}
+              <div class="input-group">
+                <span class="input-group-text">€</span>
+                {{ form.prezzo_adulto(class='form-control' + (' is-invalid' if form.prezzo_adulto.errors else '')) }}
+                {% for error in form.prezzo_adulto.errors %}
+                  <div class="invalid-feedback">{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.prezzo_bambino.label(class='form-label fw-semibold') }}
+              <div class="input-group">
+                <span class="input-group-text">€</span>
+                {{ form.prezzo_bambino(class='form-control' + (' is-invalid' if form.prezzo_bambino.errors else '')) }}
+                {% for error in form.prezzo_bambino.errors %}
+                  <div class="invalid-feedback">{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Capacità -->
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.capacita_max.label(class='form-label fw-semibold') }}
+              {{ form.capacita_max(class='form-control' + (' is-invalid' if form.capacita_max.errors else '')) }}
+              {% for error in form.capacita_max.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Incluso e Escluso -->
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.incluso.label(class='form-label fw-semibold') }}
+              {{ form.incluso(class='form-control' + (' is-invalid' if form.incluso.errors else ''), rows=4) }}
+              {% for error in form.incluso.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              {{ form.escluso.label(class='form-label fw-semibold') }}
+              {{ form.escluso(class='form-control' + (' is-invalid' if form.escluso.errors else ''), rows=4) }}
+              {% for error in form.escluso.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Note -->
+          <div class="col-12">
+            <div class="mb-3">
+              {{ form.note.label(class='form-label fw-semibold') }}
+              {{ form.note(class='form-control' + (' is-invalid' if form.note.errors else ''), rows=3) }}
+              {% for error in form.note.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Attivo -->
+          <div class="col-12">
+            <div class="mb-3 form-check">
+              {{ form.attivo(class='form-check-input') }}
+              {{ form.attivo.label(class='form-check-label fw-semibold') }}
+            </div>
+          </div>
+        </div>
+
+        <hr>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Salva
+          </button>
+          <a href="{{ url_for('tours.index') }}" class="btn btn-secondary">
+            <i class="bi bi-x-lg me-1"></i>Annulla
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

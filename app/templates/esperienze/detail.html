@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ esperienza.nome }} — Roma Lusso Travel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-3">
+    <div class="col">
+      <h1 class="h3 fw-bold"><i class="bi bi-stars me-2"></i>{{ esperienza.nome }}</h1>
+    </div>
+    <div class="col-auto d-flex gap-2">
+      {% if esperienza.url_getyourguide %}
+      <a href="{{ esperienza.url_getyourguide }}" target="_blank" class="btn btn-outline-warning">
+        <i class="bi bi-box-arrow-up-right me-1"></i>Apri su GetYourGuide
+      </a>
+      {% endif %}
+      <a href="{{ url_for('esperienze.modifica', id=esperienza.id) }}" class="btn btn-warning">
+        <i class="bi bi-pencil me-1"></i>Modifica
+      </a>
+      <button type="button" class="btn btn-danger"
+        data-bs-toggle="modal" data-bs-target="#modalElimina"
+        data-url="{{ url_for('esperienze.elimina', id=esperienza.id) }}"
+        data-nome="{{ esperienza.nome }}">
+        <i class="bi bi-trash me-1"></i>Elimina
+      </button>
+      <a href="{{ url_for('esperienze.index') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Torna alla lista
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Info principali -->
+    <div class="col-lg-8">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informazioni Principali</h5>
+        </div>
+        <div class="card-body">
+          {% if esperienza.descrizione %}
+            <p class="text-muted" style="white-space: pre-wrap;">{{ esperienza.descrizione }}</p>
+            <hr>
+          {% endif %}
+          <dl class="row mb-0">
+            <dt class="col-sm-4 text-muted">Destinazione</dt>
+            <dd class="col-sm-8">{{ esperienza.destinazione or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">Paese</dt>
+            <dd class="col-sm-8">{{ esperienza.paese or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">Categoria</dt>
+            <dd class="col-sm-8">
+              {% if esperienza.categoria %}
+                <span class="badge bg-info text-dark">{{ esperienza.categoria }}</span>
+              {% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-sm-4 text-muted">Durata</dt>
+            <dd class="col-sm-8">
+              {% if esperienza.durata_ore %}
+                {{ esperienza.durata_ore }} ore
+              {% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-sm-4 text-muted">Fornitore</dt>
+            <dd class="col-sm-8">{{ esperienza.fornitore or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">Lingua</dt>
+            <dd class="col-sm-8">{{ esperienza.lingua or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">Punto di incontro</dt>
+            <dd class="col-sm-8">{{ esperienza.punto_incontro or '—' }}</dd>
+
+            <dt class="col-sm-4 text-muted">Stato</dt>
+            <dd class="col-sm-8">
+              {% if esperienza.attivo %}
+                <span class="badge bg-success">Attiva</span>
+              {% else %}
+                <span class="badge bg-secondary">Inattiva</span>
+              {% endif %}
+            </dd>
+          </dl>
+        </div>
+      </div>
+
+      {% if esperienza.note %}
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-sticky me-2"></i>Note</h5>
+        </div>
+        <div class="card-body">
+          <p class="mb-0" style="white-space: pre-wrap;">{{ esperienza.note }}</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Sidebar: Prezzi e GetYourGuide -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0"><i class="bi bi-currency-euro me-2"></i>Prezzi</h5>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-6 text-muted">Prezzo adulto</dt>
+            <dd class="col-sm-6 fw-bold fs-5">
+              {% if esperienza.prezzo_adulto %}
+                € {{ '%.2f'|format(esperienza.prezzo_adulto) }}
+              {% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-sm-6 text-muted">Prezzo bambino</dt>
+            <dd class="col-sm-6 fw-bold fs-5">
+              {% if esperienza.prezzo_bambino %}
+                € {{ '%.2f'|format(esperienza.prezzo_bambino) }}
+              {% else %}—{% endif %}
+            </dd>
+          </dl>
+        </div>
+      </div>
+
+      {% if esperienza.url_getyourguide or esperienza.gyg_activity_id %}
+      <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0"><i class="bi bi-ticket-perforated me-2"></i>GetYourGuide</h5>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            {% if esperienza.gyg_activity_id %}
+            <dt class="col-sm-5 text-muted">Activity ID</dt>
+            <dd class="col-sm-7"><code>{{ esperienza.gyg_activity_id }}</code></dd>
+            {% endif %}
+            {% if esperienza.url_getyourguide %}
+            <dt class="col-sm-5 text-muted">URL</dt>
+            <dd class="col-sm-7">
+              <a href="{{ esperienza.url_getyourguide }}" target="_blank" class="btn btn-sm btn-outline-warning">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Apri su GetYourGuide
+              </a>
+            </dd>
+            {% endif %}
+          </dl>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Modal Elimina -->
+<div class="modal fade" id="modalElimina" tabindex="-1" aria-labelledby="modalEliminaLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="modalEliminaLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Conferma Eliminazione</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body">
+        Sei sicuro di voler eliminare l'esperienza <strong>{{ esperienza.nome }}</strong>? L'operazione non può essere annullata.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+        <form method="POST" action="{{ url_for('esperienze.elimina', id=esperienza.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Elimina</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
