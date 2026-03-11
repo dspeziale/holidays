@@ -11,5 +11,6 @@ werkzeug>=3.0.0
 email-validator>=2.1.0
 requests>=2.31.0
 itsdangerous>=2.1.2
-xhtml2pdf>=0.2.14
+xhtml2pdf==0.2.11
+reportlab==3.6.12
 gunicorn>=21.2.0
