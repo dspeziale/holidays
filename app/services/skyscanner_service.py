@@ -1,9 +1,20 @@
-"""
-Skyscanner Service — Alimentato da BoostedTravel per dati reali.
-"""
 from flask import current_app
 from datetime import datetime
+from swoop import search as swoop_search
 from boostedtravel import BoostedTravel
+
+def _format_swoop_time(t):
+    """Formatta tuple (h, m) in stringa HH:MM."""
+    if isinstance(t, tuple) and len(t) >= 2:
+        return f"{t[0]:02d}:{t[1]:02d}"
+    return "--:--"
+
+def _format_swoop_duration(m):
+    """Formatta minuti totali in stringa leggibile (es '1h 30m')."""
+    if not m: return "0m"
+    h = m // 60
+    rem = m % 60
+    return f"{h}h {rem}m" if h > 0 else f"{rem}m"
 
 def get_skyscanner_url(origin, destination, departure_date, adults=1, airline=None):
     """Genera il deep link per Skyscanner con parametri specifici."""
@@ -33,59 +44,64 @@ def get_skyscanner_url(origin, destination, departure_date, adults=1, airline=No
 
 def search_flights(origin, destination, departure_date, adults=1, currency='EUR'):
     """
-    Cerca voli REALI usando BoostedTravel.
+    Cerca voli REALI usando Swoop.
     """
-    api_key = current_app.config.get('BOOSTEDTRAVEL_API_KEY')
-    if not api_key:
-        current_app.logger.warning("BOOSTEDTRAVEL_API_KEY non configurata.")
-        return []
-
     try:
-        bt = BoostedTravel(api_key=api_key)
         # Assicuriamoci che la data sia in formato YYYY-MM-DD
         if isinstance(departure_date, datetime):
             date_str = departure_date.strftime('%Y-%m-%d')
         else:
             date_str = departure_date
 
-        flights = bt.search(origin, destination, date_str)
+        # Eseguiamo la ricerca con Swoop
+        results = swoop_search(origin.upper(), destination.upper(), date_str)
         
         formatted_results = []
-        for offer in flights.offers:
-            # outbound è di tipo FlightRoute
-            route = offer.outbound
-            if not route.segments:
-                continue
-                
-            first_seg = route.segments[0]
-            last_seg = route.segments[-1]
-            
-            # Formattiamo gli orari (es. da "2026-04-15T10:00:00" a "10:00")
+        if not results or not results.results:
+            return []
+
+        for option in results.results:
             try:
-                dep_time = first_seg.departure.split('T')[1][:5]
-                arr_time = last_seg.arrival.split('T')[1][:5]
-            except Exception:
-                dep_time = "--:--"
-                arr_time = "--:--"
-            
-            formatted_results.append({
-                'source': 'Skyscanner (Boosted)',
-                'id': offer.id,
-                'airline': first_seg.airline,
-                'airline_name': first_seg.airline_name or first_seg.airline,
-                'departure_time': dep_time,
-                'arrival_time': arr_time,
-                'duration': route.duration_human,
-                'stops': 'Diretto' if route.stopovers == 0 else f"{route.stopovers} scalo/i",
-                'price': float(offer.price),
-                'currency': offer.currency,
-                'skyscanner_url': get_skyscanner_url(origin, destination, departure_date, adults=adults, airline=first_seg.airline)
-            })
+                if not option.legs:
+                    continue
+                    
+                # Prendiamo il primo leg (sola andata per ora)
+                leg = option.legs[0]
+                iti = leg.itinerary
+                if not iti or not iti.flights:
+                    continue
+                    
+                first_flight = iti.flights[0]
+                last_flight = iti.flights[-1]
+                
+                print(f"DEBUG: first_flight attrs: {dir(first_flight)}")
+                
+                # Formattiamo gli orari usando le tuple di Swoop
+                dep_time = _format_swoop_time(iti.departure_time)
+                arr_time = _format_swoop_time(last_flight.arrival_time)
+                
+                formatted_results.append({
+                    'source': 'Skyscanner (Swoop)',
+                    'id': f"swoop_{option.price}_{iti.departure_time[0]}",
+                    'airline': first_flight.airline_code,
+                    'airline_name': first_flight.airline_name or first_flight.airline_code,
+                    'departure_time': dep_time,
+                    'arrival_time': arr_time,
+                    'duration': _format_swoop_duration(iti.travel_time),
+                    'stops': 'Diretto' if iti.stop_count == 0 else f"{iti.stop_count} scalo/i",
+                    'price': float(option.price),
+                    'currency': currency,
+                    'skyscanner_url': get_skyscanner_url(origin, destination, departure_date, adults=adults, airline=first_flight.airline_code)
+                })
+            except Exception as e:
+                print(f"DEBUG: Error processing option: {e}")
+                continue
             
         return formatted_results
 
     except Exception as e:
-        current_app.logger.error(f"BoostedTravel search failed: {e}")
+        print(f"DEBUG: Swoop search overall failed: {e}")
+        current_app.logger.error(f"Swoop search failed: {e}")
         return []
 
 def resolve_location(query):
