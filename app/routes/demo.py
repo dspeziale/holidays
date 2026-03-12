@@ -11,6 +11,7 @@ from app import db
 from app.models.cliente import Cliente
 from app.models.tour import Tour
 from app.models.esperienza import Esperienza
+from app.models.fornitore import Fornitore
 from app.models.pacchetto import Pacchetto
 from app.models.viaggio import Viaggio
 from app.utils.decorators import admin_required
