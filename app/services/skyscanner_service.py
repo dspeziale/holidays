@@ -9,7 +9,7 @@ from boostedtravel import BoostedTravel
 def _format_swoop_time(t):
     """Formatta tuple (h, m) in stringa HH:MM."""
     if isinstance(t, tuple) and len(t) >= 2:
-        return f"{t[0]:02d}:{t[1]:02d}"
+        return f"{t[0]:02d}:{t[1]:02d} GMT"
     return "--:--"
 
 def _format_swoop_duration(m):

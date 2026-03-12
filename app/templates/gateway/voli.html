@@ -337,10 +337,10 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
                                             ${leg.segments.map(s => `
                                                 <div class="segment-item">
                                                     <div class="d-flex justify-content-between">
-                                                        <span><strong>${s.departure_time}</strong> ${s.departure_airport}</span>
+                                                        <span><strong>${s.departure_time}</strong> ${s.departure_airport} <small class="text-muted">(${s.departure_airport_name})</small></span>
                                                         <span class="text-muted small">${s.airline_name} ${s.flight_number}</span>
                                                     </div>
-                                                    <div class="mt-1"><strong>${s.arrival_time}</strong> ${s.arrival_airport}</div>
+                                                    <div class="mt-1"><strong>${s.arrival_time}</strong> ${s.arrival_airport} <small class="text-muted">(${s.arrival_airport_name})</small></div>
                                                 </div>
                                             `).join('')}
                                         </div>
