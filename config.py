@@ -43,9 +43,14 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', '').replace(
-        'postgres://', 'postgresql://'
-    ) if os.environ.get('DATABASE_URL') else 'sqlite:///agency.db'
+    _uri = os.environ.get('DATABASE_URL', '')
+    if _uri.startswith('postgres://'):
+        _uri = _uri.replace('postgres://', 'postgresql://', 1)
+    if _uri and 'sslmode=' not in _uri and 'postgresql' in _uri:
+        _sep = '&' if '?' in _uri else '?'
+        _uri += f'{_sep}sslmode=require'
+    SQLALCHEMY_DATABASE_URI = _uri if _uri else 'sqlite:///agency.db'
+    
     SQLALCHEMY_ENGINE_OPTIONS = {
         "poolclass": NullPool,
     }
