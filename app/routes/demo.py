@@ -11,7 +11,8 @@ from app import db
 from app.models.cliente import Cliente
 from app.models.tour import Tour
 from app.models.esperienza import Esperienza
-from app.models.fornitore import Fornitore
+from app.models.pacchetto import Pacchetto
+from app.models.viaggio import Viaggio
 from app.utils.decorators import admin_required
 
 demo_bp = Blueprint('demo', __name__, url_prefix='/demo')
@@ -280,6 +281,7 @@ def index():
                 paese=paese,
                 lingua_preferita=_LINGUE.get(naz, 'Italiano'),
                 attivo=True,
+                is_demo=True,
             )
             db.session.add(cliente)
             contatori['clienti'] += 1
@@ -304,6 +306,7 @@ def index():
                 incluso=incluso,
                 escluso=escluso,
                 attivo=True,
+                is_demo=True,
             )
             db.session.add(tour)
             contatori['tours'] += 1
@@ -328,6 +331,7 @@ def index():
                 punto_incontro=punto,
                 lingua=lingua,
                 attivo=True,
+                is_demo=True,
             )
             db.session.add(esp)
             contatori['esperienze'] += 1
@@ -357,6 +361,7 @@ def index():
                 piva_codfisc=piva,
                 note=note,
                 attivo=True,
+                is_demo=True,
             )
             db.session.add(forn)
             contatori['fornitori'] += 1
@@ -392,3 +397,29 @@ def index():
                            max_tours=max_tours,
                            max_esperienze=max_esperienze,
                            max_fornitori=max_fornitori)
+
+
+@demo_bp.route('/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_demo():
+    """Elimina tutti i dati contrassegnati come demo."""
+    try:
+        # Ordine di eliminazione per gestire vincoli di integrità (se presenti)
+        # Viaggi e Pacchetti prima perché referenziano altri modelli
+        n_viaggi = db.session.query(Viaggio).filter(Viaggio.is_demo == True).delete()
+        n_pacchetti = db.session.query(Pacchetto).filter(Pacchetto.is_demo == True).delete()
+        n_clienti = db.session.query(Cliente).filter(Cliente.is_demo == True).delete()
+        n_tours = db.session.query(Tour).filter(Tour.is_demo == True).delete()
+        n_esperienze = db.session.query(Esperienza).filter(Esperienza.is_demo == True).delete()
+        n_fornitori = db.session.query(Fornitore).filter(Fornitore.is_demo == True).delete()
+        
+        db.session.commit()
+        
+        msg = f"Dati demo eliminati con successo: {n_clienti} clienti, {n_tours} tour, {n_esperienze} esperienze, {n_fornitori} fornitori, {n_viaggi} viaggi, {n_pacchetti} pacchetti."
+        flash(msg, 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Errore durante l'eliminazione dei dati demo: {str(e)}", 'danger')
+        
+    return redirect(url_for('demo.index'))

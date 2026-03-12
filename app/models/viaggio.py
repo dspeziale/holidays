@@ -59,6 +59,7 @@ class Viaggio(db.Model):
     note_cliente   = db.Column(db.Text)
     note_interne   = db.Column(db.Text)
     stato          = db.Column(db.String(20), default='bozza', nullable=False)
+    is_demo        = db.Column(db.Boolean, default=False, nullable=False)
     
     # Campi per Fatturazione
     ricevuta_emessa = db.Column(db.Boolean, default=False)

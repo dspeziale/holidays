@@ -21,6 +21,7 @@ class Tour(db.Model):
     escluso = db.Column(db.Text)  # cosa non è incluso
     note = db.Column(db.Text)
     attivo = db.Column(db.Boolean, default=True, nullable=False)
+    is_demo = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

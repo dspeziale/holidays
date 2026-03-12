@@ -140,11 +140,49 @@
                 <button type="submit" class="btn btn-primary">
                   <i class="bi bi-magic me-2"></i>Genera Dati Demo
                 </button>
+                {% if stats.clienti > 0 or stats.tours > 0 or stats.esperienze > 0 or stats.fornitori > 0 %}
+                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteDemoModal">
+                  <i class="bi bi-trash3 me-2"></i>Elimina Dati Demo
+                </button>
+                {% endif %}
                 <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
                   <i class="bi bi-arrow-left me-1"></i>Torna alla Dashboard
                 </a>
               </div>
             </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Conferma Eliminazione -->
+      <div class="modal fade" id="deleteDemoModal" tabindex="-1" aria-labelledby="deleteDemoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title text-danger" id="deleteDemoModalLabel">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>Conferma Eliminazione
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p>Sei sicuro di voler eliminare tutti i <strong>dati contrassegnati come DEMO</strong>?</p>
+              <p class="text-muted small">
+                Questa operazione rimuoverà clienti, tour, esperienze, fornitori, viaggi e pacchetti creati tramite questo generatore.
+                I dati reali inseriti manualmente non verranno toccati.
+              </p>
+              <div class="alert alert-danger mb-0">
+                <i class="bi bi-info-circle me-2"></i>L'operazione non è reversibile.
+              </div>
+            </div>
+            <div class="modal-footer bg-light">
+              <button type="button" class="btn btn-secondary" data-bs-modal="dismiss" data-bs-dismiss="modal">Annulla</button>
+              <form action="{{ url_for('demo.delete_demo') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger">
+                  <i class="bi bi-trash3 me-1"></i>Elimina Definitivamente
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </div>

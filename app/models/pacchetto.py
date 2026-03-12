@@ -34,6 +34,7 @@ class Pacchetto(db.Model):
     include_auto = db.Column(db.Boolean, default=False)
     note = db.Column(db.Text)
     attivo = db.Column(db.Boolean, default=True, nullable=False)
+    is_demo = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
