@@ -226,14 +226,20 @@ function setupAutocomplete(inputId, hiddenId, dropdownId) {
     const dropdown = document.getElementById(dropdownId);
 
     input.addEventListener('input', () => {
-        const val = input.value.toLowerCase();
+        const val = input.value.toUpperCase();
+        
+        // Se l'input sembra un codice IATA (3 lettere), aggiorna il campo nascosto proattivamente
+        if (val.length === 3 && /^[A-Z]{3}$/.test(val)) {
+            hidden.value = val;
+        }
+
         dropdown.innerHTML = '';
         if (val.length < 2) { dropdown.style.display = 'none'; return; }
 
         const matches = AIRPORTS.filter(a => 
-            a.c.toLowerCase().includes(val) || 
-            a.i.toLowerCase().includes(val) || 
-            a.n.toLowerCase().includes(val)
+            a.c.toLowerCase().includes(val.toLowerCase()) || 
+            a.i.toLowerCase().includes(val.toLowerCase()) || 
+            a.n.toLowerCase().includes(val.toLowerCase())
         ).slice(0, 5);
 
         if (matches.length > 0) {
@@ -265,9 +271,22 @@ setupAutocomplete('destinationText', 'destination', 'destinationDropdown');
 document.getElementById('searchForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
-    const origin = document.getElementById('origin').value;
-    const dest = document.getElementById('destination').value;
+    // Prova a estrarre il codice IATA tra parentesi se l'utente ha usato l'autocomplete (es. "Roma (FCO)")
+    const extractIata = (str) => {
+        const match = str.match(/\(([A-Z]{3})\)/);
+        return match ? match[1] : str.trim().toUpperCase();
+    };
+
+    const originInput = document.getElementById('originText').value;
+    const destInput = document.getElementById('destinationText').value;
+    
+    const origin = extractIata(originInput);
+    const dest = extractIata(destInput);
     const date = document.getElementById('flightDate').value;
+
+    // Sincronizza i campi hidden per sicurezza (usati per subtext)
+    document.getElementById('origin').value = origin;
+    document.getElementById('destination').value = dest;
     
     const loadingArea = document.getElementById('loadingArea');
     const resultsArea = document.getElementById('flightsResults');
