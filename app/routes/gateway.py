@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, current_app
 from flask_login import login_required
 from app.services import amadeus_service as amadeus
 from app.services import kiwi_service as kiwi
+from app.services import skyscanner_service as skyscanner
 import random
 from datetime import datetime, timedelta
 
@@ -37,14 +38,24 @@ def api_search_voli():
 
     formatted_results = []
     
-    # 1. Prova con Kiwi se configurato
+    # 0. Prova con il nuovo Skyscanner Service (Demo Fallback)
+    skyscanner_results = skyscanner.search_flights(origin, destination, departure_date)
+    if skyscanner_results:
+        for r in skyscanner_results:
+            # Assicuriamoci che il logo sia presente se manca nella demo
+            if not r.get('logo'):
+                r['logo'] = carrier_logos.get(r['airline'], '')
+            # Il service gestisce già il link, ma possiamo sovrascriverlo se vogliamo uniformità
+            r['skyscanner_url'] = skyscanner.get_skyscanner_url(origin, destination, departure_date)
+            formatted_results.append(r)
+        return jsonify(formatted_results)
+
+    # 1. Prova con Kiwi se configurato (legacy logic as backup)
     kiwi_results = kiwi.search_flights(origin, destination, departure_date)
     if kiwi_results:
         for r in kiwi_results:
             carrier_code = r.get('airlines', [''])[0]
-            date_obj = datetime.strptime(departure_date, '%Y-%m-%d')
-            skyscanner_date = date_obj.strftime('%y%m%d')
-            skyscanner_url = f"https://www.skyscanner.it/trasporti/voli/{origin.lower()}/{destination.lower()}/{skyscanner_date}/"
+            skyscanner_url = skyscanner.get_skyscanner_url(origin, destination, departure_date)
             
             formatted_results.append({
                 'source': 'Kiwi',
@@ -62,7 +73,7 @@ def api_search_voli():
             })
         return jsonify(formatted_results)
 
-    # 2. Fallback su Amadeus se Kiwi fallisce o non è configurato
+    # 2. Fallback su Amadeus
     risultati, dizionari = amadeus.search_flights(
         origin=origin,
         destination=destination,
@@ -72,7 +83,7 @@ def api_search_voli():
     )
     
     if risultati is None:
-        return jsonify({'error': 'Errore API (Kiwi & Amadeus)'}), 500
+        return jsonify({'error': 'Errore API (Skyscanner, Kiwi & Amadeus)'}), 500
         
     for i, r in enumerate(risultati):
         carrier_code = r.get('validatingAirlineCodes', [''])[0]
@@ -82,9 +93,7 @@ def api_search_voli():
         dep_time_raw = segments[0]['departure']['at']
         arr_time_raw = segments[-1]['arrival']['at']
         
-        date_obj = datetime.strptime(departure_date, '%Y-%m-%d')
-        skyscanner_date = date_obj.strftime('%y%m%d')
-        skyscanner_url = f"https://www.skyscanner.it/trasporti/voli/{origin.lower()}/{destination.lower()}/{skyscanner_date}/"
+        skyscanner_url = skyscanner.get_skyscanner_url(origin, destination, departure_date)
         
         formatted_results.append({
             'source': 'Amadeus',
@@ -100,5 +109,7 @@ def api_search_voli():
             'currency': r['price']['currency'],
             'skyscanner_url': skyscanner_url
         })
+        
+    return jsonify(formatted_results)
         
     return jsonify(formatted_results)
