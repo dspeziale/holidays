@@ -2,7 +2,7 @@ import os
 from sqlalchemy import create_engine, text, MetaData
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv('.env.local')
 
 # Get the database URL
 db_url = os.environ.get('DATABASE_URL', '')
