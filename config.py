@@ -53,6 +53,12 @@ class ProductionConfig(Config):
     
     SQLALCHEMY_ENGINE_OPTIONS = {
         "poolclass": NullPool,
+        "connect_args": {
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 10,
+            "keepalives_count": 5,
+        },
     }
 
 
