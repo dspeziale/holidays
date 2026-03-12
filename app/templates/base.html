@@ -239,6 +239,14 @@
               <p>Utenti & Ruoli</p>
             </a>
           </li>
+
+          <li class="nav-item">
+            <a href="{{ url_for('demo.index') }}"
+               class="nav-link {% if request.blueprint == 'demo' %}active{% endif %}">
+              <i class="nav-icon bi bi-magic"></i>
+              <p>Demo</p>
+            </a>
+          </li>
           {% endif %}
 
         </ul>

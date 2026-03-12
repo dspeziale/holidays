@@ -44,6 +44,7 @@ def create_app(config_name=None):
     from app.routes.treni import treni_bp
     from app.routes.transfer import transfer_bp
     from app.routes.fornitori import fornitori_bp
+    from app.routes.demo import demo_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -59,6 +60,7 @@ def create_app(config_name=None):
     app.register_blueprint(treni_bp)
     app.register_blueprint(transfer_bp)
     app.register_blueprint(fornitori_bp)
+    app.register_blueprint(demo_bp)
 
     # Filtri Jinja2
     import json as _json
