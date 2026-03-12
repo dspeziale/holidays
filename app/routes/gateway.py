@@ -33,7 +33,13 @@ def api_search_voli():
         'U2': 'https://upload.wikimedia.org/wikipedia/commons/b/b3/EasyJet_logo.svg',
         'VY': 'https://upload.wikimedia.org/wikipedia/commons/3/37/Vueling_Logo.svg',
         'IB': 'https://upload.wikimedia.org/wikipedia/commons/b/b4/Iberia_Logo.svg',
-        'W6': 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Wizz_Air_logo.svg'
+        'W6': 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Wizz_Air_logo.svg',
+        'TK': 'https://upload.wikimedia.org/wikipedia/commons/8/82/Turkish_Airlines_logo_2019.svg',
+        'DL': 'https://upload.wikimedia.org/wikipedia/commons/d/d1/Delta_logo.svg',
+        'AA': 'https://upload.wikimedia.org/wikipedia/commons/e/ee/American_Airlines_logo_2013.svg',
+        'UA': 'https://upload.wikimedia.org/wikipedia/commons/e/e0/United_Airlines_Logo.svg',
+        'EK': 'https://upload.wikimedia.org/wikipedia/commons/d/d0/Emirates_logo.svg',
+        'QR': 'https://upload.wikimedia.org/wikipedia/en/9/9b/Qatar_Airways_Logo.svg'
     }
 
     formatted_results = []

@@ -74,33 +74,35 @@ def search_flights(origin, destination, departure_date, adults=1, currency='EUR'
                 first_flight = iti.flights[0]
                 last_flight = iti.flights[-1]
                 
-                print(f"DEBUG: first_flight attrs: {dir(first_flight)}")
-                
-                # Formattiamo gli orari usando le tuple di Swoop
+                # Formattiamo gli orari usando le tuple di Swoop (h, m)
                 dep_time = _format_swoop_time(iti.departure_time)
-                arr_time = _format_swoop_time(last_flight.arrival_time)
+                # L'arrivo lo prendiamo dall'ultimo volo della tratta
+                arr_time = _format_swoop_time(getattr(last_flight, 'arrival_time', (0,0)))
+                
+                # Info compagnia aerea (preferiamo Itinerary che è più affidabile)
+                air_code = getattr(iti, 'airline_code', getattr(first_flight, 'airline_code', '??'))
+                air_name = iti.airline_names[0] if (hasattr(iti, 'airline_names') and iti.airline_names) else getattr(first_flight, 'airline_name', air_code)
                 
                 formatted_results.append({
                     'source': 'Skyscanner (Swoop)',
                     'id': f"swoop_{option.price}_{iti.departure_time[0]}",
-                    'airline': first_flight.airline_code,
-                    'airline_name': first_flight.airline_name or first_flight.airline_code,
+                    'airline': air_code,
+                    'airline_name': air_name,
                     'departure_time': dep_time,
                     'arrival_time': arr_time,
                     'duration': _format_swoop_duration(iti.travel_time),
                     'stops': 'Diretto' if iti.stop_count == 0 else f"{iti.stop_count} scalo/i",
                     'price': float(option.price),
                     'currency': currency,
-                    'skyscanner_url': get_skyscanner_url(origin, destination, departure_date, adults=adults, airline=first_flight.airline_code)
+                    'skyscanner_url': get_skyscanner_url(origin, destination, departure_date, adults=adults, airline=air_code)
                 })
             except Exception as e:
-                print(f"DEBUG: Error processing option: {e}")
+                current_app.logger.error(f"Error processing Swoop option: {e}")
                 continue
             
         return formatted_results
 
     except Exception as e:
-        print(f"DEBUG: Swoop search overall failed: {e}")
         current_app.logger.error(f"Swoop search failed: {e}")
         return []
 
