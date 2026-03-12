@@ -233,12 +233,14 @@
           {% endif %}
 
           {% if viaggio.hotel_json %}
-          {% set hotel = viaggio.hotel_json | from_json %}
-          <div class="col-12">
-            <div class="text-muted mb-1">Hotel collegato</div>
+          {% set data = viaggio.hotel_json | from_json %}
+          {% set hotels = data if data is iterable and data is not mapping else [data] %}
+          {% for hotel in hotels %}
+          <div class="col-12 mb-3">
+            <div class="text-muted mb-1">Hotel collegato #{{ loop.index }}</div>
             <div class="alert alert-light border d-flex align-items-center gap-3 mb-0 py-2">
               <i class="bi bi-building text-primary fs-5"></i>
-              <div>
+              <div class="flex-grow-1">
                 <span class="fw-bold">{{ hotel.get('nome', '—') }}</span>
                 {% if hotel.get('categoria') %}
                    <span class="badge text-bg-secondary ms-2">{{ hotel.get('categoria') }}</span>
@@ -252,22 +254,34 @@
                 <div class="badge text-bg-success fs-6">{{ hotel.get('prezzo', '') }}</div>
                 <div class="text-muted small mt-1">{% if hotel.get('check_in') %}{{ hotel.get('check_in') }} → {{ hotel.get('check_out') }}{% endif %}</div>
               </div>
+              
               {% if viaggio.stato == 'bozza' %}
-              <a href="{{ url_for('amadeus.hotels') }}" class="btn btn-sm btn-outline-secondary ms-2" title="Cambia hotel">
-                <i class="bi bi-arrow-repeat"></i>
-              </a>
+              <div class="d-flex gap-2 ms-2">
+                <a href="{{ url_for('amadeus.hotels') }}" class="btn btn-sm btn-outline-secondary" title="Aggiungi un altro">
+                  <i class="bi bi-plus-lg"></i>
+                </a>
+                <form method="POST" action="{{ url_for('viaggi.rimuovi_hotel', id=viaggio.id, item_id=hotel.get('item_id', 'legacy')) }}" onsubmit="return confirm('Rimuovere questo hotel?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Rimuovi">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
               {% endif %}
             </div>
           </div>
+          {% endfor %}
           {% endif %}
 
           {% if viaggio.auto_json %}
-          {% set auto = viaggio.auto_json | from_json %}
-          <div class="col-12">
-            <div class="text-muted mb-1">Auto collegata</div>
+          {% set data = viaggio.auto_json | from_json %}
+          {% set autos = data if data is iterable and data is not mapping else [data] %}
+          {% for auto in autos %}
+          <div class="col-12 mb-3">
+            <div class="text-muted mb-1">Auto collegata #{{ loop.index }}</div>
             <div class="alert alert-light border d-flex align-items-center gap-3 mb-0 py-2">
               <i class="bi bi-car-front text-primary fs-5"></i>
-              <div>
+              <div class="flex-grow-1">
                 <span class="fw-bold">{{ auto.get('descrizione', '—') }}</span>
                 {% if auto.get('categoria') %}
                    <span class="badge text-bg-secondary ms-2">{{ auto.get('categoria') }}</span>
@@ -280,13 +294,59 @@
               <div class="ms-auto">
                 <span class="badge text-bg-success fs-6">{{ auto.get('prezzo', '') }}</span>
               </div>
+              
               {% if viaggio.stato == 'bozza' %}
-              <a href="{{ url_for('amadeus.auto') }}" class="btn btn-sm btn-outline-secondary ms-2" title="Cambia auto">
-                <i class="bi bi-arrow-repeat"></i>
-              </a>
+              <div class="d-flex gap-2 ms-2">
+                <a href="{{ url_for('amadeus.auto') }}" class="btn btn-sm btn-outline-secondary" title="Aggiungi un'altra">
+                  <i class="bi bi-plus-lg"></i>
+                </a>
+                <form method="POST" action="{{ url_for('viaggi.rimuovi_auto', id=viaggio.id, item_id=auto.get('item_id', 'legacy')) }}" onsubmit="return confirm('Rimuovere questa auto?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Rimuovi">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
               {% endif %}
             </div>
           </div>
+          {% endfor %}
+          {% endif %}
+
+          {% if viaggio.treno_json %}
+          {% set data = viaggio.treno_json | from_json %}
+          {% set treni = data if data is iterable and data is not mapping else [data] %}
+          {% for t in treni %}
+          <div class="col-12 mb-3">
+            <div class="text-muted mb-1">Treno collegato #{{ loop.index }}</div>
+            <div class="alert alert-light border d-flex align-items-center gap-3 mb-0 py-2">
+              <i class="bi bi-train-front text-primary fs-5"></i>
+              <div class="flex-grow-1">
+                <span class="fw-bold">{{ t.get('origine', '?') }} → {{ t.get('destinazione', '?') }}</span>
+                <div class="text-muted small">
+                   {{ t.get('partenza','') }} - {{ t.get('arrivo','') }}
+                </div>
+              </div>
+              <div class="ms-auto">
+                <span class="badge text-bg-success fs-6">{{ t.get('prezzo_tot', '') }}</span>
+              </div>
+              
+              {% if viaggio.stato == 'bozza' %}
+              <div class="d-flex gap-2 ms-2">
+                <a href="{{ url_for('treni.index') }}" class="btn btn-sm btn-outline-secondary" title="Aggiungi un altro">
+                  <i class="bi bi-plus-lg"></i>
+                </a>
+                <form method="POST" action="{{ url_for('viaggi.rimuovi_treno', id=viaggio.id, item_id=t.get('item_id', 'legacy')) }}" onsubmit="return confirm('Rimuovere questo treno?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Rimuovi">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
           {% endif %}
 
           {% if viaggio.transfer_json %}

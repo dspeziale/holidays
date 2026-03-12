@@ -62,12 +62,35 @@ def collega_treno():
     viaggio = Viaggio.query.get_or_404(viaggio_id)
 
     try:
-        treno_data = json.loads(treno_json_str)
+        nuovo_treno = json.loads(treno_json_str)
     except Exception:
-        treno_data = {}
+        nuovo_treno = {}
+
+    if not nuovo_treno:
+        flash('Dati treno non validi.', 'danger')
+        return redirect(url_for('treni.index'))
+
+    # Gestione lista treni
+    import uuid
+    nuovo_treno['item_id'] = str(uuid.uuid4())[:8]
+
+    treni_esistenti = []
+    if viaggio.treno_json:
+        try:
+            data = json.loads(viaggio.treno_json)
+            if isinstance(data, list):
+                treni_esistenti = data
+            elif isinstance(data, dict) and data:
+                if 'item_id' not in data: data['item_id'] = 'legacy'
+                treni_esistenti = [data]
+        except Exception:
+            treni_esistenti = []
+
+    treni_esistenti.append(nuovo_treno)
+    viaggio.treno_json = json.dumps(treni_esistenti)
 
     prezzo_treno = 0.0
-    prezzo_str = treno_data.get('prezzo_tot', '')
+    prezzo_str = nuovo_treno.get('prezzo_tot', '')
     if prezzo_str:
         try:
             prezzo_treno = float(str(prezzo_str).replace(',', '.'))
@@ -78,11 +101,10 @@ def collega_treno():
         attuale = float(viaggio.prezzo_totale or 0)
         viaggio.prezzo_totale = round(attuale + prezzo_treno, 2)
 
-    viaggio.treno_json = treno_json_str
     viaggio.include_treno = True
     db.session.commit()
 
-    desc = f"{treno_data.get('origine','?')} → {treno_data.get('destinazione','?')} ({treno_data.get('partenza','')}-{treno_data.get('arrivo','')})"
+    desc = f"{nuovo_treno.get('origine','?')} → {nuovo_treno.get('destinazione','?')} ({nuovo_treno.get('partenza','')}-{nuovo_treno.get('arrivo','')})"
     extra = f' (+€{prezzo_treno:.2f} al totale viaggio)' if prezzo_treno > 0 else ''
-    flash(f'Treno ({desc}) collegato a "{viaggio.nome}"{extra}.', 'success')
+    flash(f'Treno ({desc}) aggiunto a "{viaggio.nome}"{extra}.', 'success')
     return redirect(url_for('viaggi.detail', id=viaggio_id))

@@ -303,6 +303,146 @@ def rimuovi_transfer(id, item_id):
     return redirect(url_for('viaggi.detail', id=id))
 
 
+@viaggi_bp.route('/<int:id>/rimuovi-hotel/<string:item_id>', methods=['POST'])
+@login_required
+def rimuovi_hotel(id, item_id):
+    import json
+    viaggio = Viaggio.query.get_or_404(id)
+    if viaggio.stato != 'bozza':
+        flash('Non puoi modificare un viaggio confermato o pagato.', 'warning')
+        return redirect(url_for('viaggi.detail', id=id))
+
+    if not viaggio.hotel_json:
+        return redirect(url_for('viaggi.detail', id=id))
+
+    try:
+        data = json.loads(viaggio.hotel_json)
+        if isinstance(data, dict): # legacy
+            if item_id == 'legacy' or data.get('item_id') == item_id:
+                prezzo_str = data.get('prezzo', '0')
+                try:
+                    prezzo = float(str(prezzo_str).split()[0])
+                except:
+                    prezzo = 0.0
+                viaggio.prezzo_totale = round(float(viaggio.prezzo_totale or 0) - prezzo, 2)
+                viaggio.hotel_json = None
+                viaggio.include_hotel = False
+        elif isinstance(data, list):
+            nuova_lista = []
+            prezzo_rimosso = 0.0
+            for h in data:
+                if h.get('item_id') == item_id:
+                    prezzo_str = h.get('prezzo', '0')
+                    try:
+                        prezzo_rimosso = float(str(prezzo_str).split()[0])
+                    except:
+                        prezzo_rimosso = 0.0
+                else:
+                    nuova_lista.append(h)
+            viaggio.hotel_json = json.dumps(nuova_lista) if nuova_lista else None
+            if not nuova_lista: viaggio.include_hotel = False
+            viaggio.prezzo_totale = round(float(viaggio.prezzo_totale or 0) - prezzo_rimosso, 2)
+        
+        db.session.commit()
+        flash('Hotel rimosso.', 'info')
+    except Exception as e:
+        flash(f'Errore rimosso hotel: {str(e)}', 'danger')
+    return redirect(url_for('viaggi.detail', id=id))
+
+
+@viaggi_bp.route('/<int:id>/rimuovi-auto/<string:item_id>', methods=['POST'])
+@login_required
+def rimuovi_auto(id, item_id):
+    import json
+    viaggio = Viaggio.query.get_or_404(id)
+    if viaggio.stato != 'bozza':
+        flash('Non puoi modificare un viaggio confermato o pagato.', 'warning')
+        return redirect(url_for('viaggi.detail', id=id))
+
+    if not viaggio.auto_json:
+        return redirect(url_for('viaggi.detail', id=id))
+
+    try:
+        data = json.loads(viaggio.auto_json)
+        if isinstance(data, dict):
+            if item_id == 'legacy' or data.get('item_id') == item_id:
+                prezzo_str = data.get('prezzo', '0')
+                try:
+                    prezzo = float(str(prezzo_str).split()[0])
+                except:
+                    prezzo = 0.0
+                viaggio.prezzo_totale = round(float(viaggio.prezzo_totale or 0) - prezzo, 2)
+                viaggio.auto_json = None
+                viaggio.include_auto = False
+        elif isinstance(data, list):
+            nuova_lista = []
+            prezzo_rimosso = 0.0
+            for a in data:
+                if a.get('item_id') == item_id:
+                    prezzo_str = a.get('prezzo', '0')
+                    try:
+                        prezzo_rimosso = float(str(prezzo_str).split()[0])
+                    except:
+                        prezzo_rimosso = 0.0
+                else:
+                    nuova_lista.append(a)
+            viaggio.auto_json = json.dumps(nuova_lista) if nuova_lista else None
+            if not nuova_lista: viaggio.include_auto = False
+            viaggio.prezzo_totale = round(float(viaggio.prezzo_totale or 0) - prezzo_rimosso, 2)
+        
+        db.session.commit()
+        flash('Auto rimossa.', 'info')
+    except Exception as e:
+        flash(f'Errore rimosso auto: {str(e)}', 'danger')
+    return redirect(url_for('viaggi.detail', id=id))
+
+
+@viaggi_bp.route('/<int:id>/rimuovi-treno/<string:item_id>', methods=['POST'])
+@login_required
+def rimuovi_treno(id, item_id):
+    import json
+    viaggio = Viaggio.query.get_or_404(id)
+    if viaggio.stato != 'bozza':
+        flash('Non puoi modificare un viaggio confermato o pagato.', 'warning')
+        return redirect(url_for('viaggi.detail', id=id))
+
+    if not viaggio.treno_json:
+        return redirect(url_for('viaggi.detail', id=id))
+
+    try:
+        data = json.loads(viaggio.treno_json)
+        if isinstance(data, dict):
+            if item_id == 'legacy' or data.get('item_id') == item_id:
+                prezzo_str = data.get('prezzo_tot', '0')
+                try:
+                    prezzo = float(str(prezzo_str).replace(',', '.'))
+                except:
+                    prezzo = 0.0
+                viaggio.prezzo_totale = round(float(viaggio.prezzo_totale or 0) - prezzo, 2)
+                viaggio.treno_json = None
+                viaggio.include_treno = False
+        elif isinstance(data, list):
+            nuova_lista = []
+            prezzo_rimosso = 0.0
+            for t in data:
+                if t.get('item_id') == item_id:
+                    prezzo_str = t.get('prezzo_tot', '0')
+                    try:
+                        prezzo_rimosso = float(str(prezzo_str).replace(',', '.'))
+                    except:
+                        prezzo_rimosso = 0.0
+                else:
+                    nuova_lista.append(t)
+            viaggio.treno_json = json.dumps(nuova_lista) if nuova_lista else None
+            if not nuova_lista: viaggio.include_treno = False
+            viaggio.prezzo_totale = round(float(viaggio.prezzo_totale or 0) - prezzo_rimosso, 2)
+        
+        db.session.commit()
+        flash('Treno rimosso.', 'info')
+    except Exception as e:
+        flash(f'Errore rimosso treno: {str(e)}', 'danger')
+
+
 @viaggi_bp.route('/<int:id>/aggiungi-partecipante', methods=['POST'])
 @login_required
 def aggiungi_partecipante(id):

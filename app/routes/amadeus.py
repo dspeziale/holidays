@@ -60,12 +60,35 @@ def collega_hotel():
     viaggio = Viaggio.query.get_or_404(viaggio_id)
 
     try:
-        hotel_data = json.loads(hotel_json_str)
+        nuovo_hotel = json.loads(hotel_json_str)
     except Exception:
-        hotel_data = {}
+        nuovo_hotel = {}
+
+    if not nuovo_hotel:
+        flash('Dati hotel non validi.', 'danger')
+        return redirect(url_for('amadeus.hotels'))
+
+    # Gestione lista hotel
+    import uuid
+    nuovo_hotel['item_id'] = str(uuid.uuid4())[:8]
+
+    hotel_esistenti = []
+    if viaggio.hotel_json:
+        try:
+            data = json.loads(viaggio.hotel_json)
+            if isinstance(data, list):
+                hotel_esistenti = data
+            elif isinstance(data, dict) and data:
+                if 'item_id' not in data: data['item_id'] = 'legacy'
+                hotel_esistenti = [data]
+        except Exception:
+            hotel_esistenti = []
+
+    hotel_esistenti.append(nuovo_hotel)
+    viaggio.hotel_json = json.dumps(hotel_esistenti)
 
     prezzo_hotel = 0.0
-    prezzo_str = hotel_data.get('prezzo', '')
+    prezzo_str = nuovo_hotel.get('prezzo', '')
     if prezzo_str:
         try:
             prezzo_hotel = float(prezzo_str.split()[0])
@@ -76,13 +99,12 @@ def collega_hotel():
         attuale = float(viaggio.prezzo_totale or 0)
         viaggio.prezzo_totale = round(attuale + prezzo_hotel, 2)
 
-    viaggio.hotel_json = hotel_json_str
     viaggio.include_hotel = True
     db.session.commit()
 
-    desc = hotel_data.get('nome', 'hotel selezionato')
+    desc = nuovo_hotel.get('nome', 'hotel selezionato')
     extra = f' (+€{prezzo_hotel:.2f} al totale viaggio)' if prezzo_hotel > 0 else ''
-    flash(f'Hotel ({desc}) collegato a "{viaggio.nome}"{extra}.', 'success')
+    flash(f'Hotel ({desc}) aggiunto a "{viaggio.nome}"{extra}.', 'success')
     return redirect(url_for('viaggi.detail', id=viaggio_id))
 
 
@@ -242,13 +264,35 @@ def collega_auto():
     viaggio = Viaggio.query.get_or_404(viaggio_id)
 
     try:
-        auto_data = json.loads(auto_json_str)
+        nuova_auto = json.loads(auto_json_str)
     except Exception:
-        auto_data = {}
+        nuova_auto = {}
 
-    # Aggiunge il costo al prezzo totale del viaggio
+    if not nuova_auto:
+        flash('Dati auto non validi.', 'danger')
+        return redirect(url_for('amadeus.auto'))
+
+    # Gestione lista auto
+    import uuid
+    nuova_auto['item_id'] = str(uuid.uuid4())[:8]
+
+    auto_esistenti = []
+    if viaggio.auto_json:
+        try:
+            data = json.loads(viaggio.auto_json)
+            if isinstance(data, list):
+                auto_esistenti = data
+            elif isinstance(data, dict) and data:
+                if 'item_id' not in data: data['item_id'] = 'legacy'
+                auto_esistenti = [data]
+        except Exception:
+            auto_esistenti = []
+
+    auto_esistenti.append(nuova_auto)
+    viaggio.auto_json = json.dumps(auto_esistenti)
+
     prezzo_auto = 0.0
-    prezzo_str = auto_data.get('prezzo', '')
+    prezzo_str = nuova_auto.get('prezzo', '')
     if prezzo_str:
         try:
             prezzo_auto = float(prezzo_str.split()[0])
@@ -259,11 +303,10 @@ def collega_auto():
         attuale = float(viaggio.prezzo_totale or 0)
         viaggio.prezzo_totale = round(attuale + prezzo_auto, 2)
 
-    viaggio.auto_json = auto_json_str
     viaggio.include_auto = True
     db.session.commit()
 
-    desc = auto_data.get('descrizione', 'auto selezionata')
+    desc = nuova_auto.get('descrizione', 'auto selezionata')
     extra = f' (+€{prezzo_auto:.2f} al totale viaggio)' if prezzo_auto > 0 else ''
-    flash(f'Auto ({desc}) collegata a "{viaggio.nome}"{extra}.', 'success')
+    flash(f'Auto ({desc}) aggiunta a "{viaggio.nome}"{extra}.', 'success')
     return redirect(url_for('viaggi.detail', id=viaggio_id))
