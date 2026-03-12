@@ -406,14 +406,28 @@ def index():
 def delete_demo():
     """Elimina tutti i dati contrassegnati come demo."""
     try:
-        # Ordine di eliminazione per gestire vincoli di integrità (se presenti)
-        # Viaggi e Pacchetti prima perché referenziano altri modelli
-        n_viaggi = db.session.query(Viaggio).filter(Viaggio.is_demo == True).delete()
-        n_pacchetti = db.session.query(Pacchetto).filter(Pacchetto.is_demo == True).delete()
-        n_clienti = db.session.query(Cliente).filter(Cliente.is_demo == True).delete()
-        n_tours = db.session.query(Tour).filter(Tour.is_demo == True).delete()
-        n_esperienze = db.session.query(Esperienza).filter(Esperienza.is_demo == True).delete()
-        n_fornitori = db.session.query(Fornitore).filter(Fornitore.is_demo == True).delete()
+        # Recuperiamo gli ID dei dati demo per pulire le tabelle associative
+        demo_viaggi_ids = [v.id for v in db.session.query(Viaggio.id).filter(Viaggio.is_demo == True).all()]
+        demo_pacchetti_ids = [p.id for p in db.session.query(Pacchetto.id).filter(Pacchetto.is_demo == True).all()]
+        
+        # 1. Pulizia tabelle associative (many-to-many)
+        if demo_viaggi_ids:
+            db.session.execute(text("DELETE FROM viaggio_tours WHERE viaggio_id IN :ids"), {"ids": tuple(demo_viaggi_ids)})
+            db.session.execute(text("DELETE FROM viaggio_esperienze WHERE viaggio_id IN :ids"), {"ids": tuple(demo_viaggi_ids)})
+            db.session.execute(text("DELETE FROM viaggio_partecipanti WHERE viaggio_id IN :ids"), {"ids": tuple(demo_viaggi_ids)})
+        
+        if demo_pacchetti_ids:
+            db.session.execute(text("DELETE FROM pacchetto_tours WHERE pacchetto_id IN :ids"), {"ids": tuple(demo_pacchetti_ids)})
+            db.session.execute(text("DELETE FROM pacchetto_esperienze WHERE pacchetto_id IN :ids"), {"ids": tuple(demo_pacchetti_ids)})
+
+        # 2. Eliminazione dati principali
+        # Ordine di eliminazione per gestire vincoli di integrità
+        n_viaggi = db.session.query(Viaggio).filter(Viaggio.is_demo == True).delete(synchronize_session=False)
+        n_pacchetti = db.session.query(Pacchetto).filter(Pacchetto.is_demo == True).delete(synchronize_session=False)
+        n_clienti = db.session.query(Cliente).filter(Cliente.is_demo == True).delete(synchronize_session=False)
+        n_tours = db.session.query(Tour).filter(Tour.is_demo == True).delete(synchronize_session=False)
+        n_esperienze = db.session.query(Esperienza).filter(Esperienza.is_demo == True).delete(synchronize_session=False)
+        n_fornitori = db.session.query(Fornitore).filter(Fornitore.is_demo == True).delete(synchronize_session=False)
         
         db.session.commit()
         
@@ -421,6 +435,8 @@ def delete_demo():
         flash(msg, 'success')
     except Exception as e:
         db.session.rollback()
+        # Log dell'errore per debug
+        print(f"DEBUG DELETE ERROR: {str(e)}")
         flash(f"Errore durante l'eliminazione dei dati demo: {str(e)}", 'danger')
         
     return redirect(url_for('demo.index'))
