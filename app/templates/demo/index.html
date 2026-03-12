@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+
+{% block title %}Generatore Dati Demo{% endblock %}
+{% block page_title %}Generatore Dati Demo{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Demo</li>
+{% endblock %}
+
+{% block content %}
+
+<div class="row">
+  <div class="col-12">
+
+    <!-- Alert informativo -->
+    <div class="alert alert-warning d-flex align-items-start gap-2 mb-4">
+      <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1 fs-5"></i>
+      <div>
+        <strong>Ambiente di sviluppo</strong> — Questo generatore crea dati realistici di prova.
+        I dati generati saranno visibili nell'applicazione e potranno essere eliminati manualmente.
+        <strong>Non usare in produzione</strong> con dati reali clienti.
+      </div>
+    </div>
+
+    <div class="row g-4">
+
+      <!-- Form generazione -->
+      <div class="col-lg-7">
+        <div class="card shadow-sm">
+          <div class="card-header bg-transparent">
+            <h5 class="card-title mb-0">
+              <i class="bi bi-magic me-2 text-primary"></i>Genera Dati di Test
+            </h5>
+          </div>
+          <div class="card-body">
+            <form method="POST" action="{{ url_for('demo.index') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+              <p class="text-muted mb-4">
+                Scegli quanti record creare per ciascuna entità. I dati includono
+                clienti di diverse nazionalità con documenti completi, tour e
+                esperienze con descrizioni dettagliate e fornitori con contatti reali.
+              </p>
+
+              <!-- Clienti -->
+              <div class="mb-4">
+                <label for="n_clienti" class="form-label fw-semibold">
+                  <i class="bi bi-people-fill text-primary me-2"></i>Clienti
+                  <span class="badge text-bg-light border text-muted ms-1">max {{ max_clienti }}</span>
+                </label>
+                <div class="row g-2 align-items-center">
+                  <div class="col-4 col-md-3">
+                    <input type="number" class="form-control" id="n_clienti" name="n_clienti"
+                           min="1" max="{{ max_clienti }}" value="10">
+                  </div>
+                  <div class="col-8 col-md-9">
+                    <input type="range" class="form-range" min="1" max="{{ max_clienti }}" value="10"
+                           oninput="document.getElementById('n_clienti').value=this.value"
+                           onchange="document.getElementById('n_clienti').value=this.value">
+                  </div>
+                </div>
+                <div class="form-text">
+                  Clienti di varie nazionalità: italiani, inglesi, tedeschi, francesi, americani, giapponesi, arabi e altri.
+                  Ognuno con indirizzo, documento, data di nascita e lingua preferita.
+                </div>
+              </div>
+
+              <!-- Tour -->
+              <div class="mb-4">
+                <label for="n_tours" class="form-label fw-semibold">
+                  <i class="bi bi-map-fill text-success me-2"></i>Tour
+                  <span class="badge text-bg-light border text-muted ms-1">max {{ max_tours }}</span>
+                </label>
+                <div class="row g-2 align-items-center">
+                  <div class="col-4 col-md-3">
+                    <input type="number" class="form-control" id="n_tours" name="n_tours"
+                           min="1" max="{{ max_tours }}" value="5">
+                  </div>
+                  <div class="col-8 col-md-9">
+                    <input type="range" class="form-range" min="1" max="{{ max_tours }}" value="5"
+                           oninput="document.getElementById('n_tours').value=this.value"
+                           onchange="document.getElementById('n_tours').value=this.value">
+                  </div>
+                </div>
+                <div class="form-text">
+                  Tour in Italia e nel mondo: culturali, gastronomici, avventura, safari, mare.
+                  Con descrizioni, prezzi adulto/bambino, inclusi ed esclusi.
+                </div>
+              </div>
+
+              <!-- Esperienze -->
+              <div class="mb-4">
+                <label for="n_esperienze" class="form-label fw-semibold">
+                  <i class="bi bi-stars text-info me-2"></i>Esperienze
+                  <span class="badge text-bg-light border text-muted ms-1">max {{ max_esperienze }}</span>
+                </label>
+                <div class="row g-2 align-items-center">
+                  <div class="col-4 col-md-3">
+                    <input type="number" class="form-control" id="n_esperienze" name="n_esperienze"
+                           min="1" max="{{ max_esperienze }}" value="5">
+                  </div>
+                  <div class="col-8 col-md-9">
+                    <input type="range" class="form-range" min="1" max="{{ max_esperienze }}" value="5"
+                           oninput="document.getElementById('n_esperienze').value=this.value"
+                           onchange="document.getElementById('n_esperienze').value=this.value">
+                  </div>
+                </div>
+                <div class="form-text">
+                  Esperienze locali: cucina, arte, sport, benessere, natura. Con fornitore,
+                  punto di incontro, durata e lingua.
+                </div>
+              </div>
+
+              <!-- Fornitori -->
+              <div class="mb-4">
+                <label for="n_fornitori" class="form-label fw-semibold">
+                  <i class="bi bi-buildings-fill text-warning me-2"></i>Fornitori
+                  <span class="badge text-bg-light border text-muted ms-1">max {{ max_fornitori }}</span>
+                </label>
+                <div class="row g-2 align-items-center">
+                  <div class="col-4 col-md-3">
+                    <input type="number" class="form-control" id="n_fornitori" name="n_fornitori"
+                           min="1" max="{{ max_fornitori }}" value="5">
+                  </div>
+                  <div class="col-8 col-md-9">
+                    <input type="range" class="form-range" min="1" max="{{ max_fornitori }}" value="5"
+                           oninput="document.getElementById('n_fornitori').value=this.value"
+                           onchange="document.getElementById('n_fornitori').value=this.value">
+                  </div>
+                </div>
+                <div class="form-text">
+                  Hotel, compagnie aeree, transfer, noleggio auto, TO, ristoranti stellati,
+                  crociere. Con contatti, P.IVA, sito web e note commerciali.
+                </div>
+              </div>
+
+              <hr>
+
+              <div class="d-flex gap-2 flex-wrap">
+                <button type="submit" class="btn btn-primary">
+                  <i class="bi bi-magic me-2"></i>Genera Dati Demo
+                </button>
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
+                  <i class="bi bi-arrow-left me-1"></i>Torna alla Dashboard
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistiche attuali -->
+      <div class="col-lg-5">
+        <div class="card shadow-sm mb-3">
+          <div class="card-header bg-transparent">
+            <h5 class="card-title mb-0">
+              <i class="bi bi-bar-chart-fill me-2 text-secondary"></i>Dati attualmente nel DB
+            </h5>
+          </div>
+          <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+
+              <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                <div>
+                  <i class="bi bi-people-fill text-primary me-2"></i>
+                  <span class="fw-semibold">Clienti</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge text-bg-primary rounded-pill fs-6">{{ stats.clienti }}</span>
+                  {% if stats.clienti > 0 %}
+                  <a href="{{ url_for('clienti.index') }}" class="btn btn-xs btn-link p-0 text-muted" title="Vedi clienti">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                  </a>
+                  {% endif %}
+                </div>
+              </li>
+
+              <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                <div>
+                  <i class="bi bi-map-fill text-success me-2"></i>
+                  <span class="fw-semibold">Tour</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge text-bg-success rounded-pill fs-6">{{ stats.tours }}</span>
+                  {% if stats.tours > 0 %}
+                  <a href="{{ url_for('tours.index') }}" class="btn btn-xs btn-link p-0 text-muted" title="Vedi tour">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                  </a>
+                  {% endif %}
+                </div>
+              </li>
+
+              <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                <div>
+                  <i class="bi bi-stars text-info me-2"></i>
+                  <span class="fw-semibold">Esperienze</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge text-bg-info rounded-pill fs-6">{{ stats.esperienze }}</span>
+                  {% if stats.esperienze > 0 %}
+                  <a href="{{ url_for('esperienze.index') }}" class="btn btn-xs btn-link p-0 text-muted" title="Vedi esperienze">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                  </a>
+                  {% endif %}
+                </div>
+              </li>
+
+              <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                <div>
+                  <i class="bi bi-buildings-fill text-warning me-2"></i>
+                  <span class="fw-semibold">Fornitori</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge text-bg-warning rounded-pill fs-6">{{ stats.fornitori }}</span>
+                  {% if stats.fornitori > 0 %}
+                  <a href="{{ url_for('fornitori.index') }}" class="btn btn-xs btn-link p-0 text-muted" title="Vedi fornitori">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                  </a>
+                  {% endif %}
+                </div>
+              </li>
+
+            </ul>
+          </div>
+        </div>
+
+        <!-- Catalogo disponibile -->
+        <div class="card shadow-sm">
+          <div class="card-header bg-transparent">
+            <h6 class="card-title mb-0">
+              <i class="bi bi-info-circle me-2 text-secondary"></i>Catalogo dati disponibili
+            </h6>
+          </div>
+          <div class="card-body small text-muted">
+            <ul class="mb-0 ps-3">
+              <li><strong>{{ max_clienti }} profili clienti</strong> unici da 20+ nazionalità</li>
+              <li><strong>{{ max_tours }} tour</strong> in Italia e nel mondo</li>
+              <li><strong>{{ max_esperienze }} esperienze</strong> locali e internazionali</li>
+              <li><strong>{{ max_fornitori }} fornitori</strong> per ogni tipo di servizio</li>
+            </ul>
+            <hr class="my-2">
+            <div class="text-muted" style="font-size:0.8rem">
+              I clienti ricevono automaticamente: telefono, documento, data di nascita,
+              indirizzo completo e lingua preferita in base alla nazionalità.
+              I fornitori non vengono duplicati se già presenti.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Sincronizza slider con input number e viceversa
+document.querySelectorAll('input[type="number"]').forEach(function(input) {
+  input.addEventListener('input', function() {
+    const range = this.closest('.row').querySelector('input[type="range"]');
+    if (range) range.value = this.value;
+  });
+});
+</script>
+{% endblock %}

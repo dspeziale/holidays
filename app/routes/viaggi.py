@@ -442,6 +442,8 @@ def rimuovi_treno(id, item_id):
     except Exception as e:
         flash(f'Errore rimosso treno: {str(e)}', 'danger')
 
+    return redirect(url_for('viaggi.detail', id=id))
+
 
 @viaggi_bp.route('/<int:id>/aggiungi-partecipante', methods=['POST'])
 @login_required
