@@ -31,6 +31,9 @@ class Config:
     AMADEUS_API_SECRET = os.environ.get('AMADEUS_API_SECRET')
     AMADEUS_ENV = os.environ.get('AMADEUS_ENV', 'test')
 
+    # Kiwi Tequila API
+    KIWI_API_KEY = os.environ.get('KIWI_API_KEY')
+
     # GetYourGuide API
     GETYOURGUIDE_API_KEY = os.environ.get('GETYOURGUIDE_API_KEY')
     GETYOURGUIDE_API_URL = 'https://api.getyourguide.com'
