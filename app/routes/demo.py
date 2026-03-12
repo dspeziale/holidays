@@ -244,12 +244,11 @@ def index():
 
         contatori = {'clienti': 0, 'tours': 0, 'esperienze': 0, 'fornitori': 0, 'duplicati': 0}
 
-        # ── Email esistenti per evitare duplicati ──
-        email_usate = set(
-            e[0] for e in db.session.execute(
-                db.select(Cliente.email)
-            ).all()
-        )
+        # ── Dati esistenti per evitare duplicati ──
+        email_usate = set(e[0] for e in db.session.execute(db.select(Cliente.email)).all())
+        nomi_clienti_usati = set(f"{c[0]} {c[1]}".lower() for c in db.session.execute(db.select(Cliente.nome, Cliente.cognome)).all())
+        nomi_tours_usati = set(t[0].lower() for t in db.session.execute(db.select(Tour.nome)).all())
+        nomi_esp_usate = set(e[0].lower() for e in db.session.execute(db.select(Esperienza.nome)).all())
 
         # ── Clienti ───────────────────────────────────────────────────────────
         campioni = random.sample(_CLIENTI, min(n_clienti, len(_CLIENTI)))
@@ -258,10 +257,18 @@ def index():
 
         for c_data in campioni:
             nome, cognome, naz, paese, citta, cap, tel_prefix, dominio = c_data
+            
+            # Controllo duplicato per nome e cognome
+            full_name = f"{nome} {cognome}".lower()
+            if full_name in nomi_clienti_usati:
+                contatori['duplicati'] += 1
+                continue
+                
             email = _random_unique_email(nome, cognome, dominio, email_usate)
             nascita = _rnd_date_nascita()
             rilascio = date(nascita.year + 18, random.randint(1, 12), random.randint(1, 28))
-            scadenza = rilascio + timedelta(days=365 * 10)
+            # Data scadenza fissa al 2027 come richiesto
+            scadenza = date(2027, 12, 31)
             tipo_doc = random.choice(_TIPI_DOC)
             indirizzo = f'{random.choice(_INDIRIZZI)}, {random.randint(1, 200)}'
 
@@ -285,6 +292,7 @@ def index():
                 is_demo=True,
             )
             db.session.add(cliente)
+            nomi_clienti_usati.add(full_name) # Evita duplicati nello stesso loop
             contatori['clienti'] += 1
 
         # ── Tour ──────────────────────────────────────────────────────────────
@@ -294,6 +302,12 @@ def index():
 
         for t_data in campioni_tour:
             nome, desc, dest, paese, cat, giorni, p_adulto, p_bambino, cap_max, incluso, escluso = t_data
+            
+            # Controllo duplicato per nome tour
+            if nome.lower() in nomi_tours_usati:
+                contatori['duplicati'] += 1
+                continue
+                
             tour = Tour(
                 nome=nome,
                 descrizione=desc,
@@ -310,6 +324,7 @@ def index():
                 is_demo=True,
             )
             db.session.add(tour)
+            nomi_tours_usati.add(nome.lower())
             contatori['tours'] += 1
 
         # ── Esperienze ────────────────────────────────────────────────────────
@@ -319,6 +334,12 @@ def index():
 
         for e_data in campioni_esp:
             nome, desc, dest, paese, cat, durata, p_adulto, p_bambino, fornitore, punto, lingua = e_data
+            
+            # Controllo duplicato per nome esperienza
+            if nome.lower() in nomi_esp_usate:
+                contatori['duplicati'] += 1
+                continue
+                
             esp = Esperienza(
                 nome=nome,
                 descrizione=desc,
@@ -335,6 +356,7 @@ def index():
                 is_demo=True,
             )
             db.session.add(esp)
+            nomi_esp_usate.add(nome.lower())
             contatori['esperienze'] += 1
 
         # ── Fornitori ─────────────────────────────────────────────────────────
@@ -376,7 +398,7 @@ def index():
         if contatori['fornitori']:  msg_parts.append(f"{contatori['fornitori']} fornitori")
         msg = 'Creati: ' + ', '.join(msg_parts) + '.'
         if contatori['duplicati']:
-            msg += f' ({contatori["duplicati"]} fornitori saltati perché già presenti.)'
+            msg += f' ({contatori["duplicati"]} record saltati perché già presenti.)'
         flash(msg, 'success')
         return redirect(url_for('demo.index'))
 
