@@ -11,201 +11,160 @@
 
 {% block extra_css %}
 <style>
-    :root {
-        --google-blue: #1a73e8;
-        --google-text: #202124;
-        --google-grey: #70757a;
-        --google-border: #dadce0;
-        --google-bg: #ffffff;
-    }
-    body {
-        font-family: 'Inter', 'Google Sans', 'Roboto', sans-serif !important;
-        background-color: #f8f9fa;
-        color: var(--google-text);
-    }
-    .hero-section {
-        background: white;
-        padding: 40px 20px 60px;
-        color: var(--google-text);
-        margin-bottom: 0;
-        border-bottom: 1px solid var(--google-border);
-    }
-    .search-card {
-        background: white;
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 1px 3px rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15);
-        margin-top: -30px;
-        border: none;
-        z-index: 10;
-        position: relative;
-    }
-    
-    /* Google Flights Card Style */
-    .flight-card {
-        background: white;
-        border: 1px solid var(--google-border);
-        border-radius: 8px;
-        margin-bottom: 12px;
-        transition: box-shadow 0.2s;
-        cursor: pointer;
-        overflow: hidden;
-    }
-    .flight-card:hover {
-        box-shadow: 0 1px 2px 0 rgba(60,64,67,0.302), 0 1px 3px 1px rgba(60,64,67,0.149);
-    }
-    
-    .leg-row {
-        display: flex;
-        align-items: center;
-        padding: 16px 20px;
-        border-bottom: 1px solid #f1f3f4;
-    }
-    .leg-row:last-child { border-bottom: none; }
-    
-    .airline-col { width: 48px; flex-shrink: 0; margin-right: 20px; }
-    .airline-mini-logo { width: 32px; height: 32px; object-fit: contain; }
-    
-    .time-col { flex: 1; min-width: 140px; }
-    .time-range { font-size: 1rem; font-weight: 500; }
-    .airline-name { font-size: 0.8rem; color: var(--google-grey); margin-top: 2px; }
-    
-    .duration-col { flex: 1; text-align: left; padding: 0 10px; }
-    .duration-text { font-size: 0.9rem; margin-bottom: 2px; }
-    .route-info { font-size: 0.8rem; color: var(--google-grey); }
-    
-    .stops-col { flex: 1; }
-    .stops-text { font-size: 0.9rem; }
-    .stops-detail { font-size: 0.8rem; color: var(--google-grey); }
-    .nonstop { color: #188038; } /* Green for direct */
-    
-    .price-col {
-        width: 120px;
-        text-align: right;
-        border-left: 1px solid var(--google-border);
-        padding: 16px 20px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    .price-amount { font-size: 1.1rem; font-weight: 700; color: var(--google-text); }
-    .price-type { font-size: 0.75rem; color: var(--google-grey); margin-top: 4px; }
-    
-    .btn-google {
-        background: white;
-        color: var(--google-blue);
-        border: 1px solid var(--google-border);
-        border-radius: 20px;
-        font-weight: 500;
-        padding: 6px 16px;
-        font-size: 0.85rem;
-        transition: background 0.2s;
-    }
-    .btn-google:hover { background: #f1f7fe; border-color: #d2e3fc; }
-    
-    /* Autocomplete */
     .airport-dropdown {
-        box-shadow: 0 4px 6px rgba(32,33,36,0.28);
-        border: none;
+        position: absolute;
+        z-index: 9999;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        border-radius: 0 0 .375rem .375rem;
+        max-height: 240px;
+        overflow-y: auto;
+        width: 100%;
+        box-shadow: 0 4px 12px rgba(0,0,0,.12);
+        display: none;
     }
+    .airport-dropdown .apt-item {
+        padding: .45rem .75rem;
+        cursor: pointer;
+        font-size: .875rem;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .airport-dropdown .apt-item:last-child { border-bottom: none; }
+    .airport-dropdown .apt-item:hover { background: #e9f3ff; }
+    .airport-dropdown .apt-iata {
+        font-weight: 700;
+        color: #0d6efd;
+        margin-left: .35rem;
+    }
+    .airport-wrapper { position: relative; }
+    .iata-badge {
+        position: absolute;
+        right: .5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: .7rem;
+        font-weight: 700;
+        color: #fff;
+        background: #0d6efd;
+        padding: .1rem .4rem;
+        border-radius: .25rem;
+        pointer-events: none;
+        display: none;
+    }
+    .flight-card { transition: box-shadow .2s; }
+    .flight-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.15) !important; }
     
-    /* Itinerary Detail */
-    .itinerary-expand {
-        background: #f8f9fa;
-        padding: 20px 40px;
-        border-top: 1px solid var(--google-border);
+    /* Custom for Swoop Integration */
+    .itinerary-details {
+        background: #fdfdfd;
+        border-top: 1px dashed #e2e8f0;
+        padding: 15px;
+        font-size: 0.85rem;
     }
-    .step-node {
+    .segment-item {
         position: relative;
-        padding-left: 24px;
-        padding-bottom: 20px;
-        border-left: 2px solid var(--google-border);
+        padding-left: 20px;
+        padding-bottom: 15px;
+        border-left: 2px solid #e2e8f0;
     }
-    .step-node:last-child { border-left-color: transparent; padding-bottom: 0; }
-    .step-node::before {
+    .segment-item:last-child { padding-bottom: 0; border-left-color: transparent; }
+    .segment-item::before {
         content: '';
         position: absolute;
-        left: -6px;
-        top: 4px;
-        width: 10px;
-        height: 10px;
+        left: -7px;
+        top: 0;
+        width: 12px;
+        height: 12px;
         background: white;
-        border: 2px solid var(--google-grey);
+        border: 2px solid #0d6efd;
         border-radius: 50%;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="hero-section text-center">
-    <h1 class="display-6 fw-bold mb-2">Google Flights Style Gateway</h1>
-    <p class="text-muted">Confronta prezzi reali e dettagli del viaggio con un'interfaccia pulita.</p>
-</div>
-
-<div class="row justify-content-center">
-    <div class="col-lg-10">
-        <div class="search-card">
-            <form id="searchForm" class="row g-2">
-                <div class="col-md-3 airport-wrapper">
-                    <div class="form-floating">
-                        <input type="text" id="originText" class="form-control border-0 bg-light" placeholder="Da dove?" required>
-                        <label for="originText">Partenza</label>
-                        <input type="hidden" id="origin" value="FCO">
-                    </div>
-                    <div id="originDropdown" class="airport-dropdown"></div>
-                </div>
-                <div class="col-md-3 airport-wrapper">
-                    <div class="form-floating">
-                        <input type="text" id="destinationText" class="form-control border-0 bg-light" placeholder="A dove?" required>
-                        <label for="destinationText">Arrivo</label>
-                        <input type="hidden" id="destination" value="LHR">
-                    </div>
-                    <div id="destinationDropdown" class="airport-dropdown"></div>
-                </div>
-                <div class="col-md-2">
-                    <div class="form-floating">
-                        <input type="date" id="flightDate" class="form-control border-0 bg-light" required>
-                        <label for="flightDate">Andata</label>
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="form-floating position-relative">
-                        <input type="date" id="returnDate" class="form-control border-0 bg-light" disabled>
-                        <label for="returnDate">Ritorno</label>
-                        <div class="form-check form-switch position-absolute" style="top: 10px; right: 10px; z-index: 5;">
-                            <input class="form-check-input" type="checkbox" id="isRoundTrip">
+<div class="row">
+    <div class="col-12">
+        <!-- Search card -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-airplane me-2 text-primary"></i>Ricerca Voli (Swoop Gateway)
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="searchForm">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Partenza <span class="text-danger">*</span></label>
+                            <div class="input-group airport-wrapper">
+                                <span class="input-group-text"><i class="bi bi-airplane-engines"></i></span>
+                                <div style="position:relative;flex:1;">
+                                    <input type="text" id="originText" class="form-control" placeholder="Città o aeroporto..." required>
+                                    <span class="iata-badge" id="originBadge"></span>
+                                    <div id="originDropdown" class="airport-dropdown"></div>
+                                </div>
+                                <input type="hidden" id="origin" value="FCO">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Arrivo <span class="text-danger">*</span></label>
+                            <div class="input-group airport-wrapper">
+                                <span class="input-group-text"><i class="bi bi-airplane-fill"></i></span>
+                                <div style="position:relative;flex:1;">
+                                    <input type="text" id="destinationText" class="form-control" placeholder="Città o aeroporto..." required>
+                                    <span class="iata-badge" id="destinationBadge"></span>
+                                    <div id="destinationDropdown" class="airport-dropdown"></div>
+                                </div>
+                                <input type="hidden" id="destination" value="LHR">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Andata <span class="text-danger">*</span></label>
+                            <input type="date" id="flightDate" class="form-control" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Ritorno <span class="text-muted fw-normal">(opt.)</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text p-1 px-2">
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" id="isRoundTrip">
+                                    </div>
+                                </span>
+                                <input type="date" id="returnDate" class="form-control" disabled>
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label fw-semibold">Adulti</label>
+                            <input type="number" id="adults" class="form-control" value="1" min="1" max="9">
+                        </div>
+                        <div class="col-md-1">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i>
+                            </button>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-2 d-flex">
-                    <button type="submit" class="btn btn-primary w-100 shadow-sm" style="background: var(--google-blue); border: none; border-radius: 4px; font-weight: 500;">
-                        Cerca voli
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<div class="row mt-4 justify-content-center">
-    <div class="col-lg-10">
-        <div id="resultsHeader" class="d-none mb-3 px-2">
-            <span class="text-muted small" id="resultsSubtext"></span>
-        </div>
-        
-        <div id="loadingArea" class="d-none">
-            {% for i in range(3) %}
-            <div class="flight-card p-4 mb-2" style="height: 100px; opacity: 0.6;">
-                <div class="loading-shimmer" style="height: 20px; width: 60%; margin-bottom: 10px;"></div>
-                <div class="loading-shimmer" style="height: 15px; width: 40%;"></div>
+                </form>
             </div>
-            {% endfor %}
         </div>
-        
-        <div id="flightsResults">
-            <div class="text-center py-5">
+
+        <!-- Results Area -->
+        <div id="resultsHeader" class="d-none mb-3">
+            <h5 class="mb-0" id="resultsSubtext"></h5>
+        </div>
+
+        <div id="loadingArea" class="d-none py-5 text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Ricerca delle migliori combinazioni in corso...</p>
+        </div>
+
+        <div id="flightsResults" class="row g-3">
+            <div class="col-12 text-center py-5">
                 <i class="bi bi-airplane text-light display-1"></i>
-                <p class="text-muted mt-3">Esplora le migliori opzioni di volo.</p>
+                <p class="text-muted mt-3">Inserisci i parametri per iniziare la ricerca.</p>
             </div>
         </div>
     </div>
@@ -219,26 +178,32 @@ document.getElementById('isRoundTrip').addEventListener('change', function() {
     const input = document.getElementById('returnDate');
     input.disabled = !this.checked;
     if (this.checked) {
-        input.classList.remove('bg-light');
         const depDate = new Date(document.getElementById('flightDate').value);
         depDate.setDate(depDate.getDate() + 7);
         input.value = depDate.toISOString().split('T')[0];
     } else {
-        input.classList.add('bg-light');
         input.value = '';
     }
 });
 
-function setupAutocomplete(inputId, hiddenId, dropdownId) {
+function setupAutocomplete(inputId, hiddenId, dropdownId, badgeId) {
     const input = document.getElementById(inputId);
     const hidden = document.getElementById(hiddenId);
     const dropdown = document.getElementById(dropdownId);
+    const badge = document.getElementById(badgeId);
     let localTimer;
 
     input.addEventListener('input', () => {
         clearTimeout(localTimer);
         const val = input.value.toUpperCase();
-        if (val.length === 3 && /^[A-Z]{3}$/.test(val)) hidden.value = val;
+        if (val.length === 3 && /^[A-Z]{3}$/.test(val)) {
+            hidden.value = val;
+            badge.textContent = val;
+            badge.style.display = 'block';
+        } else {
+            badge.style.display = 'none';
+        }
+        
         if (val.length < 2) { dropdown.style.display = 'none'; return; }
 
         localTimer = setTimeout(() => {
@@ -250,10 +215,12 @@ function setupAutocomplete(inputId, hiddenId, dropdownId) {
                         matches.forEach(m => {
                             const div = document.createElement('div');
                             div.className = 'apt-item';
-                            div.innerHTML = `<strong>${m.c || m.n}</strong> <small class="text-muted">${m.n}</small> <span class="apt-iata">${m.i}</span>`;
+                            div.innerHTML = `${m.c || m.n} <small class="text-muted">— ${m.n}</small> <span class="apt-iata">${m.i}</span>`;
                             div.onclick = () => {
-                                input.value = `${m.c || m.n} (${m.i})`;
+                                input.value = `${m.c || m.n} — ${m.n}`;
                                 hidden.value = m.i;
+                                badge.textContent = m.i;
+                                badge.style.display = 'block';
                                 dropdown.style.display = 'none';
                             };
                             dropdown.appendChild(div);
@@ -265,8 +232,8 @@ function setupAutocomplete(inputId, hiddenId, dropdownId) {
     });
 }
 
-setupAutocomplete('originText', 'origin', 'originDropdown');
-setupAutocomplete('destinationText', 'destination', 'destinationDropdown');
+setupAutocomplete('originText', 'origin', 'originDropdown', 'originBadge');
+setupAutocomplete('destinationText', 'destination', 'destinationDropdown', 'destinationBadge');
 
 document.getElementById('searchForm').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -274,6 +241,9 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
     const dest = document.getElementById('destination').value;
     const date = document.getElementById('flightDate').value;
     const returnDate = document.getElementById('isRoundTrip').checked ? document.getElementById('returnDate').value : '';
+    const adults = document.getElementById('adults').value || 1;
+
+    if (!origin || !dest) { alert('Seleziona aeroporto di partenza e arrivo.'); return; }
 
     const loadingArea = document.getElementById('loadingArea');
     const resultsArea = document.getElementById('flightsResults');
@@ -284,7 +254,7 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
     resultsArea.innerHTML = '';
     header.classList.add('d-none');
     
-    let url = `/gateway/api/voli/search?origin=${origin}&destination=${dest}&date=${date}`;
+    let url = `/gateway/api/voli/search?origin=${origin}&destination=${dest}&date=${date}&adults=${adults}`;
     if (returnDate) url += `&return_date=${returnDate}`;
 
     fetch(url)
@@ -294,73 +264,88 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
             header.classList.remove('d-none');
             
             if (data.error) {
-                resultsArea.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                resultsArea.innerHTML = `<div class="col-12"><div class="alert alert-danger">${data.error}</div></div>`;
                 return;
             }
 
-            subtext.innerText = `${data.length} voli trovati`;
+            subtext.innerHTML = `<i class="bi bi-airplane me-2"></i>${data.length} offerte per ${origin} ${returnDate ? '↔' : '→'} ${dest}`;
             
             data.forEach((flight, idx) => {
-                let legsRows = '';
-                flight.legs.forEach(leg => {
-                    const stopsText = leg.stops === 0 ? '<span class="nonstop">Non stop</span>' : `<span class="text-danger">${leg.stops} scalo/i</span>`;
-                    const stopsDetail = leg.segments.length > 1 ? leg.segments.slice(0, -1).map(s => s.arrival_airport).join(', ') : '';
+                let legsHtml = '';
+                flight.legs.forEach((leg, lIdx) => {
+                    const type = lIdx === 0 ? 'Andata' : 'Ritorno';
+                    const badgeClass = lIdx === 0 ? 'text-bg-primary' : 'text-bg-secondary';
+                    const icon = lIdx === 0 ? 'bi-airplane-fill' : 'bi-airplane';
+                    const style = lIdx === 1 ? 'transform:scaleX(-1);display:inline-block' : '';
 
-                    legsRows += `
-                        <div class="leg-row">
-                            <div class="airline-col">
-                                <img src="${flight.logo || '/static/img/airplane.png'}" class="airline-mini-logo" onerror="this.src='/static/img/airplane.png'">
-                            </div>
-                            <div class="time-col">
-                                <div class="time-range">${leg.departure_time} – ${leg.segments[leg.segments.length-1].arrival_time}</div>
-                                <div class="airline-name">${leg.segments[0].airline_name}</div>
-                            </div>
-                            <div class="duration-col">
-                                <div class="duration-text">${leg.duration}</div>
-                                <div class="route-info">${leg.origin}–${leg.destination}</div>
-                            </div>
-                            <div class="stops-col">
-                                <div class="stops-text">${stopsText}</div>
-                                <div class="stops-detail">${stopsDetail}</div>
+                    legsHtml += `
+                        <div class="${lIdx > 0 ? 'mt-3 pt-2 border-top' : ''}">
+                            <span class="badge ${badgeClass} mb-2">
+                                <i class="bi ${icon} me-1" style="${style}"></i>${type}
+                            </span>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <div class="text-center">
+                                    <div class="fw-bold fs-5">${leg.segments[0].departure_airport}</div>
+                                    <div class="text-muted" style="font-size:.7rem;">${leg.departure_time}</div>
+                                </div>
+                                <div class="flex-fill text-center text-muted small">
+                                    <i class="bi bi-arrow-right"></i>
+                                    <div>${leg.duration}</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="fw-bold fs-5">${leg.segments[leg.segments.length-1].arrival_airport}</div>
+                                    <div class="text-muted" style="font-size:.7rem;">${leg.segments[leg.segments.length-1].arrival_time}</div>
+                                </div>
                             </div>
                         </div>
                     `;
                 });
 
                 const html = `
-                    <div class="flight-card shadow-sm">
-                        <div class="d-flex align-items-stretch">
-                            <div style="flex: 1;">
-                                ${legsRows}
-                            </div>
-                            <div class="price-col">
-                                <div class="price-amount">€ ${Math.round(flight.price)}</div>
-                                <div class="price-type">Totale</div>
-                                <a href="${flight.skyscanner_url}" target="_blank" class="btn btn-google mt-2">Seleziona</a>
-                            </div>
-                        </div>
-                        <div class="text-center pb-2">
-                             <button class="btn btn-link btn-sm text-muted text-decoration-none" style="font-size: 0.75rem" type="button" data-bs-toggle="collapse" data-bs-target="#iti-${idx}">
-                                Vedi dettagli <i class="bi bi-chevron-down"></i>
-                             </button>
-                        </div>
-                        <div class="collapse" id="iti-${idx}">
-                            <div class="itinerary-expand">
-                                ${flight.legs.map((leg, lIdx) => `
-                                    <div class="mb-4">
-                                        <h6 class="fw-bold small mb-3">${lIdx === 0 ? 'ANDATA' : 'RITORNO'}: ${leg.origin} → ${leg.destination}</h6>
-                                        ${leg.segments.map(s => `
-                                            <div class="step-node">
-                                                <div class="d-flex justify-content-between">
-                                                    <div><strong>${s.departure_time}</strong> · ${s.departure_airport_name || s.departure_airport}</div>
-                                                    <div class="small text-muted">${s.airline_name} ${s.flight_number}</div>
-                                                </div>
-                                                <div class="py-2 small text-muted">Volo di ${s.duration}</div>
-                                                <div><strong>${s.arrival_time}</strong> · ${s.arrival_airport_name || s.arrival_airport}</div>
-                                            </div>
-                                        `).join('')}
+                    <div class="col-12 col-lg-6">
+                        <div class="card h-100 shadow-sm flight-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-start justify-content-between mb-3">
+                                    <div>
+                                        <span class="badge text-bg-secondary me-1">
+                                            <i class="bi bi-airplane me-1"></i>${flight.airline_name}
+                                        </span>
+                                        <span class="badge text-bg-light border text-dark">
+                                            ${flight.stops === 'Diretto' ? '<i class="bi bi-check-circle text-success me-1"></i>Diretto' : flight.stops}
+                                        </span>
                                     </div>
-                                `).join('')}
+                                    <div class="text-end">
+                                        <span class="fs-4 fw-bold text-success">€ ${Math.round(flight.price)}</span>
+                                        <span class="text-muted small ms-1">Totale</span>
+                                    </div>
+                                </div>
+                                ${legsHtml}
+                                <div class="d-grid gap-2 mt-3">
+                                    <a href="${flight.skyscanner_url}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-link-45deg me-1"></i>Vai su Skyscanner
+                                    </a>
+                                    <button class="btn btn-sm btn-link text-decoration-none text-muted" type="button" data-bs-toggle="collapse" data-bs-target="#iti-${idx}">
+                                        Dettaglio Percorso <i class="bi bi-chevron-down"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="collapse" id="iti-${idx}">
+                                <div class="itinerary-details">
+                                    ${flight.legs.map((leg, lIdx) => `
+                                        <div class="mb-3">
+                                            <h6 class="fw-bold small mb-2">${lIdx === 0 ? 'ANDATA' : 'RITORNO'}: ${leg.origin} → ${leg.destination}</h6>
+                                            ${leg.segments.map(s => `
+                                                <div class="segment-item">
+                                                    <div class="d-flex justify-content-between">
+                                                        <span><strong>${s.departure_time}</strong> ${s.departure_airport}</span>
+                                                        <span class="text-muted small">${s.airline_name} ${s.flight_number}</span>
+                                                    </div>
+                                                    <div class="mt-1"><strong>${s.arrival_time}</strong> ${s.arrival_airport}</div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -22,6 +22,7 @@ def api_search_voli():
     destination = request.args.get('destination', 'LON').upper()
     departure_date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
     return_date = request.args.get('return_date')
+    adults = request.args.get('adults', 1, type=int)
     
     # Mapping loghi esteso
     carrier_logos = {
@@ -45,7 +46,7 @@ def api_search_voli():
     formatted_results = []
     
     # 0. Prova con il nuovo Skyscanner Service (Swoop)
-    skyscanner_results = skyscanner.search_flights(origin, destination, departure_date, return_date=return_date)
+    skyscanner_results = skyscanner.search_flights(origin, destination, departure_date, return_date=return_date, adults=adults)
     if skyscanner_results:
         for r in skyscanner_results:
             # Assicuriamoci che il logo sia presente se manca nella demo
