@@ -24,6 +24,7 @@ class Cliente(db.Model):
     paese = db.Column(db.String(60), default='Italia')
     lingua_preferita = db.Column(db.String(60))
     note = db.Column(db.Text)
+    is_demo = db.Column(db.Boolean, default=False, nullable=False)  # Flag per dati demo
     attivo = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

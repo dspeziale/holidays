@@ -22,6 +22,7 @@ class Esperienza(db.Model):
     lingua = db.Column(db.String(30), default='Italiano')
     punto_incontro = db.Column(db.String(255))
     note = db.Column(db.Text)
+    is_demo = db.Column(db.Boolean, default=False, nullable=False)  # Flag per dati demo
     attivo = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

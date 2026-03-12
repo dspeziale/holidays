@@ -14,6 +14,7 @@ class Fornitore(db.Model):
     sito_web = db.Column(db.String(255))
     piva_codfisc = db.Column(db.String(50))
     note = db.Column(db.Text)
+    is_demo = db.Column(db.Boolean, default=False, nullable=False)  # Flag per dati demo
     attivo = db.Column(db.Boolean, default=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
