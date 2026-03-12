@@ -1,6 +1,9 @@
 from flask import current_app
 from datetime import datetime
-from swoop import search as swoop_search
+try:
+    from swoop import search as swoop_search
+except ImportError:
+    swoop_search = None
 from boostedtravel import BoostedTravel
 
 def _format_swoop_time(t):
@@ -46,6 +49,10 @@ def search_flights(origin, destination, departure_date, adults=1, currency='EUR'
     """
     Cerca voli REALI usando Swoop.
     """
+    if swoop_search is None:
+        current_app.logger.error("Swoop library not available.")
+        return []
+        
     try:
         # Assicuriamoci che la data sia in formato YYYY-MM-DD
         if isinstance(departure_date, datetime):
