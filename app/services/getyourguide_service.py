@@ -160,8 +160,7 @@ def _mock_search(query):
         or q in a.get('categoria', '').lower()
         or q in a.get('abstract', '').lower()
     ]
-    if not results:
-        results = _DEMO_CATALOG[:8]
+    # Se non ci sono risultati, ritorna lista vuota (non i primi 8 a caso)
     return results, len(results)
 
 
