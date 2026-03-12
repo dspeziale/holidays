@@ -44,8 +44,8 @@ def api_search_voli():
 
     formatted_results = []
     
-    # 0. Prova con il nuovo Skyscanner Service (Demo Fallback)
-    skyscanner_results = skyscanner.search_flights(origin, destination, departure_date)
+    # 0. Prova con il nuovo Skyscanner Service (Swoop)
+    skyscanner_results = skyscanner.search_flights(origin, destination, departure_date, return_date=return_date)
     if skyscanner_results:
         for r in skyscanner_results:
             # Assicuriamoci che il logo sia presente se manca nella demo

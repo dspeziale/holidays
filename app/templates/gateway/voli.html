@@ -132,21 +132,52 @@
         border-radius: 4px;
         font-size: 0.75rem;
     }
+    /* Itinerary Detail Styles */
+    .itinerary-details {
+        background: #fdfdfd;
+        border-top: 1px dashed #e2e8f0;
+        padding: 15px;
+        font-size: 0.85rem;
+    }
+    .segment-item {
+        position: relative;
+        padding-left: 20px;
+        padding-bottom: 15px;
+        border-left: 2px solid #e2e8f0;
+    }
+    .segment-item:last-child {
+        padding-bottom: 0;
+        border-left-color: transparent;
+    }
+    .segment-item::before {
+        content: '';
+        position: absolute;
+        left: -7px;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        background: white;
+        border: 2px solid var(--skyscanner-blue);
+        border-radius: 50%;
+    }
+    .segment-dot-end::before {
+        border-color: var(--skyscanner-green);
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="hero-section text-center">
-    <h1 class="display-5 fw-bold mb-2">Accesso Diretto ai Voli Reali</h1>
-    <p class="lead opacity-75">Dati in tempo reale tramite <strong>BoostedTravel</strong> (Agentic Proxy) & Link Skyscanner</p>
+    <h1 class="display-5 fw-bold mb-2">Ricerca Voli Reali</h1>
+    <p class="lead opacity-75">Dati in tempo reale tramite <strong>Swoop</strong> & Link Skyscanner</p>
 </div>
 
 <div class="row justify-content-center">
     <div class="col-lg-11">
         <div class="search-card">
             <form id="searchForm" class="row g-3">
-                <div class="col-md-4 airport-wrapper">
-                    <label class="form-label text-muted small fw-bold">PARTENZA (IATA)</label>
+                <div class="col-md-3 airport-wrapper">
+                    <label class="form-label text-muted small fw-bold">PARTENZA</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="bi bi-geo-alt"></i></span>
                         <input type="text" id="originText" class="form-control bg-light border-start-0" placeholder="Esempio: Roma FCO" required>
@@ -154,8 +185,8 @@
                     </div>
                     <div id="originDropdown" class="airport-dropdown"></div>
                 </div>
-                <div class="col-md-4 airport-wrapper">
-                    <label class="form-label text-muted small fw-bold">ARRIVO (IATA)</label>
+                <div class="col-md-3 airport-wrapper">
+                    <label class="form-label text-muted small fw-bold">ARRIVO</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="bi bi-send-fill text-primary"></i></span>
                         <input type="text" id="destinationText" class="form-control bg-light border-start-0" placeholder="Esempio: Londra LHR" required>
@@ -163,12 +194,21 @@
                     </div>
                     <div id="destinationDropdown" class="airport-dropdown"></div>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label text-muted small fw-bold">DATA PARTENZA</label>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small fw-bold">ANDATA</label>
                     <input type="date" id="flightDate" class="form-control bg-light" required>
                 </div>
-                <div class="col-md-1 d-flex align-items-end">
-                    <button type="submit" class="btn btn-skyscanner w-100 shadow-sm"><i class="bi bi-search"></i></button>
+                <div class="col-md-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <label class="form-label text-muted small fw-bold mb-0">RITORNO</label>
+                        <div class="form-check form-switch p-0">
+                            <input class="form-check-input ms-0" type="checkbox" id="isRoundTrip">
+                        </div>
+                    </div>
+                    <input type="date" id="returnDate" class="form-control bg-light" disabled>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-skyscanner w-100 shadow-sm"><i class="bi bi-search"></i> Cerca</button>
                 </div>
             </form>
         </div>
@@ -183,7 +223,7 @@
                 <p class="text-muted mb-0" id="resultsSubtext"></p>
             </div>
             <div class="badge bg-light text-dark border p-2">
-                <i class="bi bi-shield-check text-success me-1"></i> Prezzi in tempo reale
+                <i class="bi bi-shield-check text-success me-1"></i> Prezzi tramite Swoop
             </div>
         </div>
         
@@ -210,17 +250,28 @@
 
 {% block extra_js %}
 <script>
+// Toggle Ritorno
+document.getElementById('isRoundTrip').addEventListener('change', function() {
+    document.getElementById('returnDate').disabled = !this.checked;
+    if (this.checked) {
+        const depDate = new Date(document.getElementById('flightDate').value);
+        depDate.setDate(depDate.getDate() + 7);
+        document.getElementById('returnDate').value = depDate.toISOString().split('T')[0];
+    } else {
+        document.getElementById('returnDate').value = '';
+    }
+});
+
 function setupAutocomplete(inputId, hiddenId, dropdownId) {
     const input = document.getElementById(inputId);
     const hidden = document.getElementById(hiddenId);
     const dropdown = document.getElementById(dropdownId);
-    let localTimer; // Timer isolato per questa istanza
+    let localTimer;
 
     input.addEventListener('input', () => {
         clearTimeout(localTimer);
         const val = input.value.toUpperCase();
         
-        // Se l'input sembra un codice IATA (3 lettere), aggiorna il campo nascosto proattivamente
         if (val.length === 3 && /^[A-Z]{3}$/.test(val)) {
             hidden.value = val;
         }
@@ -271,23 +322,17 @@ setupAutocomplete('destinationText', 'destination', 'destinationDropdown');
 document.getElementById('searchForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
-    // Prova a estrarre il codice IATA tra parentesi se l'utente ha usato l'autocomplete (es. "Roma (FCO)")
     const extractIata = (str) => {
         const match = str.match(/\(([A-Z]{3})\)/);
         return match ? match[1] : str.trim().toUpperCase();
     };
 
-    const originInput = document.getElementById('originText').value;
-    const destInput = document.getElementById('destinationText').value;
-    
-    const origin = extractIata(originInput);
-    const dest = extractIata(destInput);
+    const origin = extractIata(document.getElementById('originText').value);
+    const dest = extractIata(document.getElementById('destinationText').value);
     const date = document.getElementById('flightDate').value;
+    const isRoundTrip = document.getElementById('isRoundTrip').checked;
+    const returnDate = isRoundTrip ? document.getElementById('returnDate').value : '';
 
-    // Sincronizza i campi hidden per sicurezza (usati per subtext)
-    document.getElementById('origin').value = origin;
-    document.getElementById('destination').value = dest;
-    
     const loadingArea = document.getElementById('loadingArea');
     const resultsArea = document.getElementById('flightsResults');
     const header = document.getElementById('resultsHeader');
@@ -297,64 +342,96 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
     resultsArea.innerHTML = '';
     header.classList.add('d-none');
     
-    fetch(`/gateway/api/voli/search?origin=${origin}&destination=${dest}&date=${date}`)
+    let url = `/gateway/api/voli/search?origin=${origin}&destination=${dest}&date=${date}`;
+    if (returnDate) url += `&return_date=${returnDate}`;
+
+    fetch(url)
         .then(response => response.json())
         .then(data => {
             loadingArea.classList.add('d-none');
             header.classList.remove('d-none');
             
             if (data.error) {
-                resultsArea.innerHTML = `<div class="alert alert-danger">Errore API: ${data.error}</div>`;
+                resultsArea.innerHTML = `<div class="alert alert-danger">Errore: ${data.error}</div>`;
                 return;
             }
 
-            subtext.innerText = `${data.length} voli reali trovati per la rotta ${origin} → ${dest}`;
+            subtext.innerText = `${data.length} soluzioni trovate per ${origin} ${returnDate ? '↔' : '→'} ${dest}`;
             
             if (data.length === 0) {
-                resultsArea.innerHTML = '<div class="alert alert-info py-4 text-center">Nessun volo trovato per questa data. Prova un altro aeroporto o data differente.</div>';
+                resultsArea.innerHTML = '<div class="alert alert-info py-4 text-center">Nessun volo trovato.</div>';
                 return;
             }
             
-            data.forEach(flight => {
-                const card = `
-                    <div class="card flight-card border-0 shadow-sm p-4">
-                        <div class="row align-items-center">
-                            <div class="col-md-3 text-center text-md-start">
-                                <div class="airline-logo-container mb-2">
-                                    ${flight.logo ? `<img src="${flight.logo}" alt="${flight.airline}" class="airline-logo">` : `<i class="bi bi-airplane-fill fs-3 text-primary"></i>`}
+            data.forEach((flight, idx) => {
+                let legsHtml = '';
+                if (flight.legs) {
+                    flight.legs.forEach((leg, lIdx) => {
+                        legsHtml += `
+                            <div class="mt-3 pt-2 border-top">
+                                <div class="d-flex justify-content-between small fw-bold text-muted mb-2">
+                                    <span><i class="bi bi-arrow-${lIdx === 0 ? 'right' : 'left'}-circle me-1"></i> ${lIdx === 0 ? 'ANDATA' : 'RITORNO'}: ${leg.origin} → ${leg.destination}</span>
+                                    <span>${leg.duration} • ${leg.stops === 0 ? 'Diretto' : leg.stops + ' scali'}</span>
                                 </div>
-                                <div class="small fw-bold text-dark">${flight.airline_name || flight.airline}</div>
-                                <div class="mt-1"><span class="badge bg-info text-dark" style="font-size:0.65rem">${flight.source || 'Volo'}</span></div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="row text-center align-items-center">
-                                    <div class="col">
-                                        <div class="h4 fw-bold mb-0 text-dark">${flight.departure_time}</div>
-                                        <div class="badge bg-light text-muted border">${origin}</div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="small text-muted mb-1 fw-bold">${flight.duration}</div>
-                                        <div class="d-flex align-items-center">
-                                            <div class="border-top" style="width: 40px; border-color: #cbd5e0 !important;"></div>
-                                            <i class="bi bi-airplane mx-2 text-primary" style="font-size: 1.2rem;"></i>
-                                            <div class="border-top" style="width: 40px; border-color: #cbd5e0 !important;"></div>
+                                <div class="percorso-segments">
+                                    ${leg.segments.map(s => `
+                                        <div class="segment-item">
+                                            <div class="d-flex justify-content-between">
+                                                <span><strong>${s.departure_time}</strong> ${s.departure_airport_name || s.departure_airport}</span>
+                                                <span class="text-muted"><i class="bi bi-airplane-fill small"></i> ${s.airline_name} (${s.airline} ${s.flight_number})</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mt-1">
+                                                <span class="text-muted small">Volo ${s.duration}</span>
+                                            </div>
+                                            <div class="mt-1"><strong>${s.arrival_time}</strong> ${s.arrival_airport_name || s.arrival_airport}</div>
                                         </div>
-                                        <div class="small fw-bold text-success mt-1">${flight.stops}</div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                const card = `
+                    <div class="card flight-card border-0 shadow-sm mb-4">
+                        <div class="card-body p-4">
+                            <div class="row align-items-center">
+                                <div class="col-md-3 text-center text-md-start">
+                                    <div class="airline-logo-container mb-2">
+                                        ${flight.logo ? `<img src="${flight.logo}" alt="${flight.airline}" class="airline-logo">` : `<i class="bi bi-airplane-fill fs-3 text-primary"></i>`}
                                     </div>
-                                    <div class="col">
-                                        <div class="h4 fw-bold mb-0 text-dark">${flight.arrival_time}</div>
-                                        <div class="badge bg-light text-muted border">${dest}</div>
+                                    <div class="small fw-bold text-dark">${flight.airline_name}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="row text-center align-items-center">
+                                        <div class="col">
+                                            <div class="h4 fw-bold mb-0">${flight.departure_time}</div>
+                                            <div class="badge bg-light text-muted border">${origin}</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="small text-muted mb-1 fw-bold">${flight.duration}</div>
+                                            <i class="bi bi-airplane text-primary fs-4"></i>
+                                            <div class="small fw-bold text-success mt-1">${flight.stops}</div>
+                                        </div>
+                                        <div class="col">
+                                            <div class="h4 fw-bold mb-0">${flight.arrival_time}</div>
+                                            <div class="badge bg-light text-muted border">${dest}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-center text-md-end border-start">
+                                    <div class="mb-1 text-muted small fw-bold">Prezzo Totale</div>
+                                    <div class="price-tag mb-3">${flight.currency} ${flight.price}</div>
+                                    <div class="d-grid gap-2">
+                                        <a href="${flight.skyscanner_url}" target="_blank" class="btn btn-real-skyscanner">Vai su Skyscanner</a>
+                                        <button class="btn btn-sm btn-outline-secondary border-0" type="button" data-bs-toggle="collapse" data-bs-target="#iti-${idx}">
+                                            Dettaglio Percorso <i class="bi bi-chevron-down ms-1"></i>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3 text-center text-md-end border-start">
-                                <div class="mb-1 text-muted small fw-bold">Prezzo Totale</div>
-                                <div class="price-tag mb-3">${flight.currency} ${flight.price}</div>
-                                <div class="d-grid gap-2">
-                                    <a href="${flight.skyscanner_url}" target="_blank" class="btn btn-real-skyscanner">
-                                        <i class="bi bi-box-arrow-up-right me-1"></i> Vai su Skyscanner
-                                    </a>
-                                </div>
+                            <div class="collapse" id="iti-${idx}">
+                                ${legsHtml}
                             </div>
                         </div>
                     </div>
@@ -363,14 +440,15 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
             });
         })
         .catch(err => {
+            console.error(err);
             loadingArea.classList.add('d-none');
-            resultsArea.innerHTML = '<div class="alert alert-danger">Errore di connessione. Verifica le credenziali Amadeus.</div>';
+            resultsArea.innerHTML = '<div class="alert alert-danger">Errore durante la ricerca.</div>';
         });
 });
 
 window.addEventListener('load', () => {
     const today = new Date();
-    today.setDate(today.getDate() + 7); // Default to next week
+    today.setDate(today.getDate() + 7);
     document.getElementById('flightDate').value = today.toISOString().split('T')[0];
     document.getElementById('flightDate').min = new Date().toISOString().split('T')[0];
 });
