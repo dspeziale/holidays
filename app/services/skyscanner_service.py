@@ -77,6 +77,7 @@ def search_flights(origin, destination, departure_date, adults=1, currency='EUR'
                 'arrival_time': arr_time,
                 'duration': route.duration_human,
                 'stops': 'Diretto' if route.stopovers == 0 else f"{route.stopovers} scalo/i",
+                'price': float(offer.price),
                 'currency': offer.currency,
                 'skyscanner_url': get_skyscanner_url(origin, destination, departure_date, adults=adults, airline=first_seg.airline)
             })

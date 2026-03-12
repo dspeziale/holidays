@@ -45,8 +45,9 @@ def api_search_voli():
             # Assicuriamoci che il logo sia presente se manca nella demo
             if not r.get('logo'):
                 r['logo'] = carrier_logos.get(r['airline'], '')
-            # Il service gestisce già il link, ma possiamo sovrascriverlo se vogliamo uniformità
-            r['skyscanner_url'] = skyscanner.get_skyscanner_url(origin, destination, departure_date)
+            # Il service gestisce già il link specifico (con airline/adulti)
+            if not r.get('skyscanner_url'):
+                r['skyscanner_url'] = skyscanner.get_skyscanner_url(origin, destination, departure_date)
             formatted_results.append(r)
         return jsonify(formatted_results)
 
