@@ -2,7 +2,9 @@ from flask import current_app
 from datetime import datetime
 try:
     from swoop import search as swoop_search
-except ImportError:
+except (ImportError, ModuleNotFoundError) as e:
+    # Log the error for visibility but don't crash the server
+    print(f"Warning: Swoop (swoop-flights) not found: {e}")
     swoop_search = None
 from boostedtravel import BoostedTravel
 

@@ -1,0 +1,30 @@
+[project]
+name = "holidays"
+version = "0.1.0"
+description = "Gestore viaggi"
+authors = [
+    { name = "Daniele Speziale" }
+]
+dependencies = [
+    "flask>=3.0.0",
+    "flask-sqlalchemy>=3.1.0",
+    "flask-login>=0.6.3",
+    "flask-migrate>=4.0.5",
+    "flask-wtf>=1.2.1",
+    "flask-mail>=0.10.0",
+    "python-dotenv>=1.0.0",
+    "psycopg2-binary>=2.9.9",
+    "wtforms>=3.1.1",
+    "werkzeug>=3.0.0",
+    "email-validator>=2.1.0",
+    "requests>=2.31.0",
+    "itsdangerous>=2.1.2",
+    "xhtml2pdf==0.2.14",
+    "reportlab==4.0.4",
+    "gunicorn>=21.2.0",
+    "boostedtravel>=0.1.2",
+    "swoop-flights==0.3.0"
+]
+
+[tool.uv]
+managed = true
