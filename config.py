@@ -38,6 +38,9 @@ class Config:
     GETYOURGUIDE_API_KEY = os.environ.get('GETYOURGUIDE_API_KEY')
     GETYOURGUIDE_API_URL = 'https://api.getyourguide.com'
 
+    # BoostedTravel API
+    BOOSTEDTRAVEL_API_KEY = os.environ.get('BOOSTEDTRAVEL_API_KEY', 'trav_TjzCBWGg0_kuMzBmIl-L18Dk9kzDNUftXNZXiQA4uQk')
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
