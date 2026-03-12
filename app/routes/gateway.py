@@ -1,5 +1,6 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, current_app
 from flask_login import login_required
+from app.services import amadeus_service as amadeus
 import random
 from datetime import datetime, timedelta
 
@@ -14,41 +15,62 @@ def voli():
 @gateway_bp.route('/api/voli/search')
 @login_required
 def api_search_voli():
-    """Simulazione ricerca voli Skyscanner."""
-    origin = request.args.get('origin', 'Roma')
-    destination = request.args.get('destination', 'Londra')
+    """Ricerca voli reali tramite Amadeus con link Skyscanner."""
+    origin = request.args.get('origin', 'ROM').upper()
+    destination = request.args.get('destination', 'LON').upper()
     departure_date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    return_date = request.args.get('return_date')
     
-    # Generiamo dati dummy "belli"
-    airlines = [
-        {'name': 'ITA Airways', 'logo': 'https://upload.wikimedia.org/wikipedia/commons/e/e0/ITA_Airways_logo.svg'},
-        {'name': 'Lufthansa', 'logo': 'https://upload.wikimedia.org/wikipedia/commons/b/b8/Lufthansa_Logo_2018.svg'},
-        {'name': 'British Airways', 'logo': 'https://upload.wikimedia.org/wikipedia/en/d/de/British_Airways_Logo.svg'},
-        {'name': 'Air France', 'logo': 'https://upload.wikimedia.org/wikipedia/commons/4/44/Air_France_Logo.svg'},
-        {'name': 'Ryanair', 'logo': 'https://upload.wikimedia.org/wikipedia/it/9/90/Logo-Ryanair.svg'}
-    ]
+    # Ricerca reale tramite Amadeus service
+    risultati, dizionari = amadeus.search_flights(
+        origin=origin,
+        destination=destination,
+        departure_date=departure_date,
+        return_date=return_date,
+        max_results=15
+    )
     
-    results = []
-    for i in range(10):
-        airline = random.choice(airlines)
-        dep_time = datetime.strptime(departure_date + " 08:00", '%Y-%m-%d %H:%M') + timedelta(minutes=random.randint(0, 720))
-        duration_mins = random.randint(60, 300)
-        arr_time = dep_time + timedelta(minutes=duration_mins)
+    if risultati is None:
+        return jsonify({'error': 'Errore API'}), 500
         
-        results.append({
-            'id': i,
-            'airline': airline['name'],
-            'logo': airline['logo'],
-            'departure_time': dep_time.strftime('%H:%M'),
-            'arrival_time': arr_time.strftime('%H:%M'),
-            'duration': f"{duration_mins // 60}h {duration_mins % 60}m",
-            'stops': random.choice(['Diretto', '1 scalo']),
-            'price': random.randint(45, 450),
-            'origin': origin,
-            'destination': destination
+    formatted_results = []
+    
+    # Mapping loghi (opzionale, Amadeus non li dà direttamente)
+    carrier_logos = {
+        'AZ': 'https://upload.wikimedia.org/wikipedia/commons/e/e0/ITA_Airways_logo.svg',
+        'LH': 'https://upload.wikimedia.org/wikipedia/commons/b/b8/Lufthansa_Logo_2018.svg',
+        'BA': 'https://upload.wikimedia.org/wikipedia/en/d/de/British_Airways_Logo.svg',
+        'AF': 'https://upload.wikimedia.org/wikipedia/commons/4/44/Air_France_Logo.svg',
+        'FR': 'https://upload.wikimedia.org/wikipedia/it/9/90/Logo-Ryanair.svg',
+        'U2': 'https://upload.wikimedia.org/wikipedia/commons/b/b3/EasyJet_logo.svg'
+    }
+
+    for i, r in enumerate(risultati):
+        carrier_code = r.get('validatingAirlineCodes', [''])[0]
+        itinerary = r['itineraries'][0]
+        segments = itinerary['segments']
+        
+        dep_time_raw = segments[0]['departure']['at']
+        arr_time_raw = segments[-1]['arrival']['at']
+        
+        # Formattazione per Skyscanner Deep Link (YYMMDD)
+        # Esempio: https://www.skyscanner.it/trasporti/voli/rom/lon/260320/
+        date_obj = datetime.strptime(departure_date, '%Y-%m-%d')
+        skyscanner_date = date_obj.strftime('%y%m%d')
+        skyscanner_url = f"https://www.skyscanner.it/trasporti/voli/{origin.lower()}/{destination.lower()}/{skyscanner_date}/"
+        
+        formatted_results.append({
+            'id': r['id'],
+            'airline': carrier_code,
+            'airline_name': dizionari.get('carriers', {}).get(carrier_code, carrier_code),
+            'logo': carrier_logos.get(carrier_code, ''),
+            'departure_time': dep_time_raw.split('T')[1][:5],
+            'arrival_time': arr_time_raw.split('T')[1][:5],
+            'duration': itinerary['duration'].replace('PT', '').replace('H', 'h ').replace('M', 'm'),
+            'stops': 'Diretto' if len(segments) == 1 else f"{len(segments)-1} scalo/i",
+            'price': float(r['price']['total']),
+            'currency': r['price']['currency'],
+            'skyscanner_url': skyscanner_url
         })
-    
-    # Ordina per prezzo
-    results.sort(key=lambda x: x['price'])
-    
-    return jsonify(results)
+        
+    return jsonify(formatted_results)
