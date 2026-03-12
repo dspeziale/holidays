@@ -210,15 +210,14 @@
 
 {% block extra_js %}
 <script>
-let debounceTimer;
-
 function setupAutocomplete(inputId, hiddenId, dropdownId) {
     const input = document.getElementById(inputId);
     const hidden = document.getElementById(hiddenId);
     const dropdown = document.getElementById(dropdownId);
+    let localTimer; // Timer isolato per questa istanza
 
     input.addEventListener('input', () => {
-        clearTimeout(debounceTimer);
+        clearTimeout(localTimer);
         const val = input.value.toUpperCase();
         
         // Se l'input sembra un codice IATA (3 lettere), aggiorna il campo nascosto proattivamente
@@ -232,7 +231,7 @@ function setupAutocomplete(inputId, hiddenId, dropdownId) {
             return; 
         }
 
-        debounceTimer = setTimeout(() => {
+        localTimer = setTimeout(() => {
             fetch(`/gateway/api/locations/search?q=${encodeURIComponent(val)}`)
                 .then(res => res.json())
                 .then(matches => {
@@ -260,7 +259,9 @@ function setupAutocomplete(inputId, hiddenId, dropdownId) {
     });
 
     document.addEventListener('click', (e) => {
-        if (!input.contains(e.target)) dropdown.style.display = 'none';
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
     });
 }
 
