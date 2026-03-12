@@ -210,15 +210,7 @@
 
 {% block extra_js %}
 <script>
-// Mock data for autocomplete (Subset of common airports)
-const AIRPORTS = [
-    {c:'Roma',n:'Fiumicino',i:'FCO'}, {c:'Roma',n:'Ciampino',i:'CIA'},
-    {c:'Milano',n:'Malpensa',i:'MXP'}, {c:'Milano',n:'Linate',i:'LIN'},
-    {c:'Londra',n:'Heathrow',i:'LHR'}, {c:'Londra',n:'Gatwick',i:'LGW'},
-    {c:'Londra',n:'Stansted',i:'STN'}, {c:'Parigi',n:'CDG',i:'CDG'},
-    {c:'Barcellona',n:'El Prat',i:'BCN'}, {c:'Madrid',n:'Barajas',i:'MAD'},
-    {c:'New York',n:'JFK',i:'JFK'}, {c:'Dubai',n:'International',i:'DXB'}
-];
+let debounceTimer;
 
 function setupAutocomplete(inputId, hiddenId, dropdownId) {
     const input = document.getElementById(inputId);
@@ -226,6 +218,7 @@ function setupAutocomplete(inputId, hiddenId, dropdownId) {
     const dropdown = document.getElementById(dropdownId);
 
     input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
         const val = input.value.toUpperCase();
         
         // Se l'input sembra un codice IATA (3 lettere), aggiorna il campo nascosto proattivamente
@@ -233,31 +226,37 @@ function setupAutocomplete(inputId, hiddenId, dropdownId) {
             hidden.value = val;
         }
 
-        dropdown.innerHTML = '';
-        if (val.length < 2) { dropdown.style.display = 'none'; return; }
-
-        const matches = AIRPORTS.filter(a => 
-            a.c.toLowerCase().includes(val.toLowerCase()) || 
-            a.i.toLowerCase().includes(val.toLowerCase()) || 
-            a.n.toLowerCase().includes(val.toLowerCase())
-        ).slice(0, 5);
-
-        if (matches.length > 0) {
-            matches.forEach(m => {
-                const div = document.createElement('div');
-                div.className = 'apt-item';
-                div.innerHTML = `<strong>${m.c}</strong> <small class="text-muted">— ${m.n}</small> <span class="apt-iata">${m.i}</span>`;
-                div.onclick = () => {
-                    input.value = `${m.c} (${m.i})`;
-                    hidden.value = m.i;
-                    dropdown.style.display = 'none';
-                };
-                dropdown.appendChild(div);
-            });
-            dropdown.style.display = 'block';
-        } else {
-            dropdown.style.display = 'none';
+        if (val.length < 2) { 
+            dropdown.innerHTML = '';
+            dropdown.style.display = 'none'; 
+            return; 
         }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`/gateway/api/locations/search?q=${encodeURIComponent(val)}`)
+                .then(res => res.json())
+                .then(matches => {
+                    dropdown.innerHTML = '';
+                    if (matches.length > 0) {
+                        matches.forEach(m => {
+                            const div = document.createElement('div');
+                            div.className = 'apt-item';
+                            const icon = m.t === 'city' ? 'bi-building' : 'bi-airplane';
+                            div.innerHTML = `<i class="bi ${icon} me-2 text-muted"></i> <strong>${m.c || m.n}</strong> <small class="text-muted">— ${m.n}</small> <span class="apt-iata">${m.i}</span>`;
+                            div.onclick = () => {
+                                input.value = `${m.c || m.n} (${m.i})`;
+                                hidden.value = m.i;
+                                dropdown.style.display = 'none';
+                            };
+                            dropdown.appendChild(div);
+                        });
+                        dropdown.style.display = 'block';
+                    } else {
+                        dropdown.style.display = 'none';
+                    }
+                })
+                .catch(err => console.error("Autocomplete error:", err));
+        }, 300);
     });
 
     document.addEventListener('click', (e) => {

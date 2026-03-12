@@ -113,3 +113,14 @@ def api_search_voli():
     return jsonify(formatted_results)
         
     return jsonify(formatted_results)
+
+@gateway_bp.route('/api/locations/search')
+@login_required
+def api_search_locations():
+    """Risolve città/aeroporto in codici IATA tramite BoostedTravel."""
+    query = request.args.get('q', '')
+    if not query or len(query) < 2:
+        return jsonify([])
+    
+    locations = skyscanner.resolve_location(query)
+    return jsonify(locations)
