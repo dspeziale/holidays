@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Ricerca Voli Skyscanner{% endblock %}
+
+{% block page_title %}Skyscanner Gateway{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">Gateway</li>
+<li class="breadcrumb-item active">Voli</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --skyscanner-blue: #0770e3;
+        --skyscanner-dark: #02122c;
+    }
+    .hero-section {
+        background: linear-gradient(135deg, var(--skyscanner-dark) 0%, var(--skyscanner-blue) 100%);
+        padding: 40px 20px;
+        border-radius: 12px;
+        color: white;
+        margin-bottom: 30px;
+    }
+    .search-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        margin-top: -30px;
+        border: none;
+    }
+    .flight-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border: 1px solid #eee;
+    }
+    .flight-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+    }
+    .airline-logo {
+        height: 30px;
+        max-width: 80px;
+        object-fit: contain;
+    }
+    .price-tag {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--skyscanner-blue);
+    }
+    .btn-skyscanner {
+        background-color: var(--skyscanner-blue);
+        color: white;
+        border-radius: 20px;
+        padding: 8px 25px;
+        font-weight: 600;
+    }
+    .btn-skyscanner:hover {
+        background-color: #0056b3;
+        color: white;
+    }
+    .loading-shimmer {
+        height: 100px;
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-section text-center">
+    <h1 class="display-6 fw-bold">Trova il volo perfetto per i tuoi clienti</h1>
+    <p class="lead">Simulazione integrazione Skyscanner Gateway</p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="search-card">
+            <form id="searchForm" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label text-muted small fw-bold">DA</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-geo-alt"></i></span>
+                        <input type="text" id="origin" class="form-control bg-light border-start-0" value="Roma" required>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-muted small fw-bold">A</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-send-fill text-primary"></i></span>
+                        <input type="text" id="destination" class="form-control bg-light border-start-0" value="Londra" required>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-bold">DATA</label>
+                    <input type="date" id="flightDate" class="form-control bg-light" value="{{ now }}">
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-skyscanner w-100"><i class="bi bi-search"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5 justify-content-center">
+    <div class="col-lg-10">
+        <div id="resultsHeader" class="d-none mb-4">
+            <h4 class="fw-bold">Risultati della ricerca</h4>
+            <p class="text-muted" id="resultsSubtext"></p>
+        </div>
+        
+        <div id="loadingArea" class="d-none">
+            <div class="flight-card shadow-sm p-3 loading-shimmer mb-3"></div>
+            <div class="flight-card shadow-sm p-3 loading-shimmer mb-3"></div>
+            <div class="flight-card shadow-sm p-3 loading-shimmer mb-3"></div>
+        </div>
+        
+        <div id="flightsResults">
+            <!-- Risultati inseriti via JS -->
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-airplane-engines fs-1 mb-3"></i>
+                <p>Inserisci i dettagli del viaggio e clicca su cerca</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('searchForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const origin = document.getElementById('origin').value;
+    const dest = document.getElementById('destination').value;
+    const date = document.getElementById('flightDate').value;
+    
+    // UI state
+    const loadingArea = document.getElementById('loadingArea');
+    const resultsArea = document.getElementById('flightsResults');
+    const header = document.getElementById('resultsHeader');
+    const subtext = document.getElementById('resultsSubtext');
+    
+    loadingArea.classList.remove('d-none');
+    resultsArea.innerHTML = '';
+    header.classList.add('d-none');
+    
+    // API Search call
+    fetch(`/gateway/api/voli/search?origin=${origin}&destination=${dest}&date=${date}`)
+        .then(response => response.json())
+        .then(data => {
+            setTimeout(() => { // Mock delay for realism
+                loadingArea.classList.add('d-none');
+                header.classList.remove('d-none');
+                subtext.innerText = `${data.length} voli trovati per il ${date}`;
+                
+                if (data.length === 0) {
+                    resultsArea.innerHTML = '<div class="alert alert-info">Nessun volo trovato.</div>';
+                    return;
+                }
+                
+                data.forEach(flight => {
+                    const card = `
+                        <div class="card flight-card border-0 shadow-sm p-4">
+                            <div class="row align-items-center">
+                                <div class="col-md-3 text-center text-md-start">
+                                    <img src="${flight.logo}" alt="${flight.airline}" class="airline-logo mb-2 mb-md-0">
+                                    <div class="small fw-semibold text-muted">${flight.airline}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="row text-center align-items-center">
+                                        <div class="col">
+                                            <div class="h5 fw-bold mb-0">${flight.departure_time}</div>
+                                            <div class="small text-muted">${origin}</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="small text-muted mb-1">${flight.duration}</div>
+                                            <div class="d-flex align-items-center">
+                                                <div class="flex-grow-1 border-top" style="width: 50px;"></div>
+                                                <i class="bi bi-airplane mx-2 text-primary"></i>
+                                                <div class="flex-grow-1 border-top" style="width: 50px;"></div>
+                                            </div>
+                                            <div class="small fw-bold text-success mt-1">${flight.stops}</div>
+                                        </div>
+                                        <div class="col">
+                                            <div class="h5 fw-bold mb-0">${flight.arrival_time}</div>
+                                            <div class="small text-muted">${dest}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-center text-md-end border-start">
+                                    <div class="mb-2 text-muted small">Miglior prezzo</div>
+                                    <div class="price-tag mb-3">€ ${flight.price}</div>
+                                    <button class="btn btn-skyscanner btn-sm">Vedi offerta</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    resultsArea.insertAdjacentHTML('beforeend', card);
+                });
+            }, 800);
+        })
+        .catch(err => {
+            loadingArea.classList.add('d-none');
+            resultsArea.innerHTML = '<div class="alert alert-danger">Errore durante la ricerca.</div>';
+        });
+});
+
+// Set default date to tomorrow
+window.addEventListener('load', () => {
+    const today = new Date();
+    today.setDate(today.getDate() + 1);
+    document.getElementById('flightDate').value = today.toISOString().split('T')[0];
+});
+</script>
+{% endblock %}

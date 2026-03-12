@@ -228,6 +228,17 @@
               <p>Transfer</p>
             </a>
           </li>
+          
+          <li class="nav-header">GATEWAY</li>
+          
+          <!-- Skyscanner Flights -->
+          <li class="nav-item">
+            <a href="{{ url_for('gateway.voli') }}"
+               class="nav-link {% if request.blueprint == 'gateway' %}active{% endif %}">
+              <i class="nav-icon bi bi-rocket-takeoff text-primary"></i>
+              <p>Skyscanner Voli</p>
+            </a>
+          </li>
 
           {% if current_user.is_authenticated and current_user.is_admin() %}
           <li class="nav-header">SISTEMA</li>
