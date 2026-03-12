@@ -43,7 +43,8 @@ def _seed_demo():
             prezzo_bambino=45.00,
             capacita_max=15,
             incluso='Guida certificata, accesso prioritario Colosseo, auricolari',
-            attivo=True
+            attivo=True,
+            is_demo=True
         ),
         Tour(
             nome='Tour della Costiera Amalfitana',
@@ -56,7 +57,8 @@ def _seed_demo():
             prezzo_bambino=280.00,
             capacita_max=20,
             incluso='Trasporti, 2 notti hotel 4★, colazioni, guida',
-            attivo=True
+            attivo=True,
+            is_demo=True
         ),
         Tour(
             nome='Wine Tour Toscana',
@@ -69,7 +71,8 @@ def _seed_demo():
             prezzo_bambino=0.00,
             capacita_max=12,
             incluso='Degustazioni in 4 cantine, pranzo tipico, transfer da Firenze',
-            attivo=True
+            attivo=True,
+            is_demo=True
         ),
     ]
 
@@ -85,7 +88,8 @@ def _seed_demo():
             prezzo_bambino=65.00,
             fornitore='Cucina Romana SRL',
             lingua='Italiano/Inglese',
-            attivo=True
+            attivo=True,
+            is_demo=True
         ),
         Esperienza(
             nome='Tour notturno del Vaticano',
@@ -98,7 +102,8 @@ def _seed_demo():
             prezzo_bambino=85.00,
             fornitore='Vatican Tours',
             lingua='Italiano',
-            attivo=True
+            attivo=True,
+            is_demo=True
         ),
         Esperienza(
             nome='Kayak sul Lago di Como',
@@ -111,7 +116,8 @@ def _seed_demo():
             prezzo_bambino=50.00,
             fornitore='Lake Adventures',
             lingua='Italiano/Inglese',
-            attivo=True
+            attivo=True,
+            is_demo=True
         ),
     ]
 
@@ -130,7 +136,8 @@ def _seed_demo():
         prezzo_adulto=370.00,
         prezzo_bambino=240.00,
         include_hotel=True,
-        attivo=True
+        attivo=True,
+        is_demo=True
     )
     p1.tours.append(tours[0])
     p1.esperienze.append(esperienze[0])
@@ -147,7 +154,8 @@ def _seed_demo():
         include_volo=True,
         include_hotel=True,
         include_auto=True,
-        attivo=True
+        attivo=True,
+        is_demo=True
     )
     p2.tours.append(tours[2])
     p2.esperienze.append(esperienze[0])
@@ -162,7 +170,8 @@ def _seed_demo():
         prezzo_bambino=330.00,
         include_hotel=True,
         include_auto=True,
-        attivo=True
+        attivo=True,
+        is_demo=True
     )
     p3.tours.append(tours[1])
     p3.esperienze.append(esperienze[2])
