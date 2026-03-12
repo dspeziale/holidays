@@ -137,7 +137,7 @@ def search_flights(origin, destination, departure_date, return_date=None, adults
                 'arrival_time': summary_arrival,
                 'duration': first_leg['duration'],
                 'stops': 'Diretto' if first_leg['stops'] == 0 else f"{first_leg['stops']} scalo/i",
-                'price': float(option.price),
+                'price': float(option.price) * adults,
                 'currency': currency,
                 'legs': legs_data, # Passiamo tutto l'itinerario
                 'skyscanner_url': get_skyscanner_url(origin, destination, departure_date, adults=adults, airline=main_airline)
